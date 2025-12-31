@@ -20,7 +20,7 @@ interface SignUpProps {
   onBackToLogin: () => void;
 }
 
-export function SignUp({ onSignUp, onBackToLogin }: SignUpProps) {
+export default function SignUp({ onSignUp, onBackToLogin }: SignUpProps) {
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [phone, setPhone] = React.useState("");
