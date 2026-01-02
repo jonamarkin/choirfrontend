@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { motion, AnimatePresence } from "motion/react";
 import {
   User,
   Bell,
@@ -140,6 +141,10 @@ function NotificationSettings() {
 function SubscriptionSettings() {
   const [isPaying, setIsPaying] = React.useState(false);
   const [isSubscribing, setIsSubscribing] = React.useState(false);
+  const [showModal, setShowModal] = React.useState(false);
+  const [subscribedPlanId, setSubscribedPlanId] = React.useState<string | null>(
+    null
+  );
   const [selectedPlanId, setSelectedPlanId] = React.useState("singing");
 
   const plans = [
@@ -188,130 +193,188 @@ function SubscriptionSettings() {
     // Simulate payment processing
     await new Promise((resolve) => setTimeout(resolve, 2000));
     setIsPaying(false);
+    setShowModal(false);
   };
 
   const handleSubscribe = async () => {
     setIsSubscribing(true);
     // Simulate subscription update without payment
     await new Promise((resolve) => setTimeout(resolve, 1500));
+    setSubscribedPlanId(selectedPlanId);
     setIsSubscribing(false);
+    setShowModal(true);
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-medium">Subscription & Billing</h3>
-        <p className="text-sm text-muted-foreground">
-          Select a membership plan and manage your subscription.
-        </p>
-      </div>
-      <Separator />
+    <>
+      <div className="space-y-6">
+        <div>
+          <h3 className="text-lg font-medium">Subscription & Billing</h3>
+          <p className="text-sm text-muted-foreground">
+            Select a membership plan and manage your subscription.
+          </p>
+        </div>
+        <Separator />
 
-      {/* Plan Selection */}
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {plans.map((plan) => (
-          <div
-            key={plan.id}
-            onClick={() => setSelectedPlanId(plan.id)}
-            className={cn(
-              "relative cursor-pointer rounded-xl border p-4 transition-all duration-200",
-              selectedPlanId === plan.id
-                ? "border-[#5A1E6E] bg-[#5A1E6E]/5 ring-1 ring-[#5A1E6E]"
-                : "border-border/60 bg-card hover:border-[#5A1E6E]/50 hover:bg-accent/50"
-            )}
-          >
-            <div className="flex justify-between items-start mb-2">
-              <h4 className="font-semibold">{plan.name}</h4>
-              {selectedPlanId === plan.id && (
-                <div className="h-5 w-5 rounded-full bg-[#5A1E6E] flex items-center justify-center">
-                  <Check className="h-3 w-3 text-white" />
-                </div>
+        {/* Plan Selection */}
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {plans.map((plan) => (
+            <div
+              key={plan.id}
+              onClick={() => setSelectedPlanId(plan.id)}
+              className={cn(
+                "relative cursor-pointer rounded-xl border p-4 transition-all duration-200",
+                selectedPlanId === plan.id
+                  ? "border-[#5A1E6E] bg-[#5A1E6E]/5 ring-1 ring-[#5A1E6E]"
+                  : "border-border/60 bg-card hover:border-[#5A1E6E]/50 hover:bg-accent/50"
               )}
+            >
+              <div className="flex justify-between items-start mb-2">
+                <h4 className="font-semibold">{plan.name}</h4>
+                {selectedPlanId === plan.id && (
+                  <div className="h-5 w-5 rounded-full bg-[#5A1E6E] flex items-center justify-center">
+                    <Check className="h-3 w-3 text-white" />
+                  </div>
+                )}
+              </div>
+              <div className="mb-3">
+                <span className="text-2xl font-bold">${plan.price}</span>
+                <span className="text-sm text-muted-foreground">
+                  /{plan.interval}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {plan.description}
+              </p>
             </div>
-            <div className="mb-3">
-              <span className="text-2xl font-bold">${plan.price}</span>
-              <span className="text-sm text-muted-foreground">
-                /{plan.interval}
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              {plan.description}
-            </p>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
 
-      {/* Selected Plan Summary & Payment */}
-      <div className="rounded-xl border border-border/60 bg-card p-6 shadow-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-muted-foreground">
-              Selected Plan
-            </p>
-            <h4 className="text-xl font-bold">{selectedPlan.name}</h4>
-            <p className="text-sm text-muted-foreground">
-              Total due:{" "}
-              <span className="font-bold text-foreground">
-                ${selectedPlan.price}.00
-              </span>
-            </p>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-3">
+        {/* Selected Plan Summary & Payment */}
+        <div className="rounded-xl border border-border/60 bg-card p-6 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">
+                Selected Plan
+              </p>
+              <h4 className="text-xl font-bold">{selectedPlan.name}</h4>
+              <p className="text-sm text-muted-foreground">
+                Total due:{" "}
+                <span className="font-bold text-foreground">
+                  ${selectedPlan.price}.00
+                </span>
+              </p>
+            </div>
             <Button
-              variant="outline"
               onClick={handleSubscribe}
-              disabled={isPaying || isSubscribing}
-              className="min-w-[160px]"
+              disabled={isSubscribing || subscribedPlanId === selectedPlan.id}
+              className={cn(
+                "min-w-[160px]",
+                subscribedPlanId === selectedPlan.id
+                  ? "bg-green-600 hover:bg-green-700"
+                  : "bg-[#5A1E6E] hover:bg-[#3D123F]"
+              )}
             >
               {isSubscribing ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Updating...
+                  Subscribing...
+                </>
+              ) : subscribedPlanId === selectedPlan.id ? (
+                <>
+                  <Check className="mr-2 h-4 w-4" />
+                  Subscribed
                 </>
               ) : (
-                "Subscribe (Pay Later)"
+                "Subscribe"
               )}
             </Button>
-            <Button
-              onClick={handlePayment}
-              disabled={isPaying || isSubscribing}
-              className="bg-[#5A1E6E] hover:bg-[#3D123F] min-w-[160px]"
-            >
-              {isPaying ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <CreditCard className="mr-2 h-4 w-4" />
-                  Pay ${selectedPlan.price}
-                </>
-              )}
+          </div>
+        </div>
+
+        {/* Payment Method */}
+        <div className="space-y-4">
+          <h4 className="text-sm font-medium">Payment Method</h4>
+          <div className="flex items-center justify-between rounded-lg border border-border/60 p-4">
+            <div className="flex items-center gap-4">
+              <div className="flex h-10 w-14 items-center justify-center rounded bg-muted">
+                <CreditCard className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="font-medium">Visa ending in 4242</p>
+                <p className="text-sm text-muted-foreground">Expires 12/25</p>
+              </div>
+            </div>
+            <Button variant="ghost" size="sm">
+              Edit
             </Button>
           </div>
         </div>
       </div>
 
-      {/* Payment Method */}
-      <div className="space-y-4">
-        <h4 className="text-sm font-medium">Payment Method</h4>
-        <div className="flex items-center justify-between rounded-lg border border-border/60 p-4">
-          <div className="flex items-center gap-4">
-            <div className="flex h-10 w-14 items-center justify-center rounded bg-muted">
-              <CreditCard className="h-5 w-5 text-muted-foreground" />
-            </div>
-            <div>
-              <p className="font-medium">Visa ending in 4242</p>
-              <p className="text-sm text-muted-foreground">Expires 12/25</p>
-            </div>
+      <AnimatePresence>
+        {showModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowModal(false)}
+              className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-border/60 bg-card p-6 shadow-xl sm:p-10"
+            >
+              <div className="flex flex-col items-center text-center">
+                <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+                  <Check className="h-8 w-8 text-green-600 dark:text-green-400" />
+                </div>
+                <h3 className="mb-2 text-2xl font-bold">
+                  Subscription Confirmed!
+                </h3>
+                <p className="mb-8 text-muted-foreground">
+                  You have successfully subscribed to the{" "}
+                  <span className="font-medium text-foreground">
+                    {selectedPlan.name}
+                  </span>{" "}
+                  plan. Would you like to complete your payment now?
+                </p>
+
+                <div className="flex w-full flex-col gap-3 sm:flex-row">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowModal(false)}
+                    className="flex-1 h-11 rounded-xl"
+                  >
+                    Pay Later
+                  </Button>
+                  <Button
+                    onClick={handlePayment}
+                    disabled={isPaying}
+                    className="flex-1 h-11 rounded-xl bg-[#5A1E6E] hover:bg-[#3D123F]"
+                  >
+                    {isPaying ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <CreditCard className="mr-2 h-4 w-4" />
+                        Pay ${selectedPlan.price}
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
           </div>
-          <Button variant="ghost" size="sm">
-            Edit
-          </Button>
-        </div>
-      </div>
-    </div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 
