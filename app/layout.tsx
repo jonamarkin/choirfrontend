@@ -18,7 +18,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <TooltipProvider delayDuration={120}>
-            <div className="flex justify-end p-4">
+            <div className="absolute right-4 top-4 z-50">
               <ModeToggle />
             </div>
             {children}

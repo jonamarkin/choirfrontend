@@ -38,15 +38,17 @@ const navItems = [
     label: "Settings",
     icon: Settings,
     subItems: [
-      { href: "/settings/manage-subscriptions", label: "Manage Subscriptions", icon: CreditCard },
+      {
+        href: "/settings/manage-subscriptions",
+        label: "Manage Subscriptions",
+        icon: CreditCard,
+      },
       { href: "/settings/manage-users", label: "Manage Users", icon: UserCog },
     ],
   },
 ];
 
-const footerItems = [
-  { label: "Sign out", icon: LogOut },
-];
+const footerItems = [{ label: "Sign out", icon: LogOut }];
 
 /* ----------------------------------------
    NavRow component
@@ -253,7 +255,7 @@ export function Sidebar({
               key={item.label}
               label={item.label}
               icon={item.icon}
-              onClick={() => console.log("logout")}
+              onClick={() => navigate("/login")}
             />
           ))}
         </div>
