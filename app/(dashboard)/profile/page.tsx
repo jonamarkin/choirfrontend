@@ -403,10 +403,12 @@ export default function ProfilePage() {
           {tabs.map((tab) => (
             <Button
               key={tab.id}
-              variant={activeTab === tab.id ? "secondary" : "ghost"}
+              variant="ghost"
               className={cn(
                 "justify-start w-full",
-                activeTab === tab.id && "bg-muted hover:bg-muted"
+                activeTab === tab.id
+                  ? "bg-[#5A1E6E]/10 text-[#5A1E6E] hover:bg-[#5A1E6E]/20"
+                  : "text-muted-foreground hover:text-foreground"
               )}
               onClick={() => setActiveTab(tab.id)}
             >
