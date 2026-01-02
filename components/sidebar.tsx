@@ -16,6 +16,7 @@ import {
   Calendar,
   Home,
   X,
+  User,
 } from "lucide-react";
 
 import { cn } from "@/components/ui/utils";
@@ -48,7 +49,10 @@ const navItems = [
   },
 ];
 
-const footerItems = [{ label: "Sign out", icon: LogOut }];
+const footerItems = [
+  { href: "/profile", label: "My Profile", icon: User },
+  { href: "/login", label: "Sign out", icon: LogOut },
+];
 
 /* ----------------------------------------
    NavRow component
@@ -255,7 +259,8 @@ export function Sidebar({
               key={item.label}
               label={item.label}
               icon={item.icon}
-              onClick={() => navigate("/login")}
+              active={pathname === item.href}
+              onClick={() => navigate(item.href)}
             />
           ))}
         </div>
