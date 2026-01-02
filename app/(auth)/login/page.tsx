@@ -19,54 +19,56 @@ export default function Login() {
   const [password, setPassword] = React.useState("");
   const [showPassword, setShowPassword] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
-  const [selectedRole, setSelectedRole] = React.useState<"admin" | "member">("admin");
-  const [errors, setErrors] = React.useState<{ email?: string; password?: string }>({});
+  const [errors, setErrors] = React.useState<{
+    email?: string;
+    password?: string;
+  }>({});
   const router = useRouter();
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {};
-    
+
     if (!email) {
       newErrors.email = "Email is required";
     } else if (!/\S+@\S+\.\S+/.test(email)) {
       newErrors.email = "Please enter a valid email";
     }
-    
+
     if (!password) {
       newErrors.password = "Password is required";
     } else if (password.length < 6) {
       newErrors.password = "Password must be at least 6 characters";
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
-    
+
     setIsLoading(true);
-    
+
     // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 1500));
-    
+
     // Use the selected role for testing
-    console.log("Login:", { email, password, selectedRole });
+    console.log("Login:", { email, password });
     setIsLoading(false);
 
     //router push("/dashboard");
-    router.push(selectedRole === "admin" ? "/home" : "/members");
+    router.push("/home");
   };
 
   return (
     <div className="relative min-h-screen flex items-center justify-center p-4 bg-background overflow-hidden">
       {/* Background Gradients */}
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(1200px_circle_at_35%_20%,rgba(90,30,110,0.12),transparent_55%),radial-gradient(1000px_circle_at_70%_80%,rgba(243,106,33,0.08),transparent_50%),radial-gradient(800px_circle_at_10%_90%,rgba(242,183,5,0.06),transparent_45%)]" />
-      
+
       {/* Animated Background Elements */}
       <motion.div
         initial={{ opacity: 0, scale: 0.8 }}
@@ -105,7 +107,7 @@ export default function Login() {
             >
               <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-[#5A1E6E] to-[#3D123F]" />
             </motion.div>
-            
+
             <motion.h1
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -114,7 +116,7 @@ export default function Login() {
             >
               VocalEssence
             </motion.h1>
-            
+
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -147,13 +149,15 @@ export default function Login() {
                   value={email}
                   onChange={(e) => {
                     setEmail(e.target.value);
-                    if (errors.email) setErrors({ ...errors, email: undefined });
+                    if (errors.email)
+                      setErrors({ ...errors, email: undefined });
                   }}
                   className={cn(
                     "pl-10 h-11 rounded-xl border-border/60 bg-background/60 backdrop-blur-sm",
                     "focus:border-primary/40 focus:ring-primary/20",
                     "transition-all duration-200",
-                    errors.email && "border-red-500/50 focus:border-red-500/50 focus:ring-red-500/20"
+                    errors.email &&
+                      "border-red-500/50 focus:border-red-500/50 focus:ring-red-500/20"
                   )}
                   disabled={isLoading}
                 />
@@ -183,13 +187,15 @@ export default function Login() {
                   value={password}
                   onChange={(e) => {
                     setPassword(e.target.value);
-                    if (errors.password) setErrors({ ...errors, password: undefined });
+                    if (errors.password)
+                      setErrors({ ...errors, password: undefined });
                   }}
                   className={cn(
                     "pl-10 pr-10 h-11 rounded-xl border-border/60 bg-background/60 backdrop-blur-sm",
                     "focus:border-primary/40 focus:ring-primary/20",
                     "transition-all duration-200",
-                    errors.password && "border-red-500/50 focus:border-red-500/50 focus:ring-red-500/20"
+                    errors.password &&
+                      "border-red-500/50 focus:border-red-500/50 focus:ring-red-500/20"
                   )}
                   disabled={isLoading}
                 />
@@ -215,45 +221,6 @@ export default function Login() {
                   {errors.password}
                 </motion.p>
               )}
-            </div>
-
-            {/* Role Selection (For Testing) */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">
-                Login As (Testing)
-              </Label>
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setSelectedRole("admin")}
-                  disabled={isLoading}
-                  className={cn(
-                    "flex-1 h-11 rounded-xl border transition-all duration-200",
-                    "flex items-center justify-center gap-2 font-medium text-sm",
-                    selectedRole === "admin"
-                      ? "border-[#5A1E6E] bg-[#5A1E6E]/10 text-[#5A1E6E]"
-                      : "border-border/60 bg-background/60 text-muted-foreground hover:bg-accent/50"
-                  )}
-                >
-                  <div className="w-2 h-2 rounded-full bg-current" />
-                  Admin
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedRole("member")}
-                  disabled={isLoading}
-                  className={cn(
-                    "flex-1 h-11 rounded-xl border transition-all duration-200",
-                    "flex items-center justify-center gap-2 font-medium text-sm",
-                    selectedRole === "member"
-                      ? "border-[#F36A21] bg-[#F36A21]/10 text-[#F36A21]"
-                      : "border-border/60 bg-background/60 text-muted-foreground hover:bg-accent/50"
-                  )}
-                >
-                  <div className="w-2 h-2 rounded-full bg-current" />
-                  Member
-                </button>
-              </div>
             </div>
 
             {/* Remember Me & Forgot Password */}
