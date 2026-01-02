@@ -295,7 +295,7 @@ function SubscriptionSettings() {
         {/* Payment Method */}
         <div className="space-y-4">
           <h4 className="text-sm font-medium">Payment Method</h4>
-          <div className="flex items-center justify-between rounded-lg border border-border/60 p-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-lg border border-border/60 p-4">
             <div className="flex items-center gap-4">
               <div className="flex h-10 w-14 items-center justify-center rounded bg-muted">
                 <CreditCard className="h-5 w-5 text-muted-foreground" />
@@ -305,7 +305,7 @@ function SubscriptionSettings() {
                 <p className="text-sm text-muted-foreground">Expires 12/25</p>
               </div>
             </div>
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" className="w-full sm:w-auto">
               Edit
             </Button>
           </div>
@@ -389,21 +389,23 @@ export default function ProfilePage() {
   ];
 
   return (
-    <div className="flex flex-col flex-1 h-full space-y-8 p-8 md:flex-row md:space-x-12 md:space-y-0">
+    <div className="flex flex-col flex-1 h-full space-y-6 p-4 md:flex-row md:space-x-12 md:space-y-0 md:p-8">
       <aside className="md:w-1/4 lg:w-1/5">
         <div className="mb-6">
-          <h2 className="text-3xl font-bold tracking-tight">Settings</h2>
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
+            Settings
+          </h2>
           <p className="text-muted-foreground">
             Manage your account settings and preferences.
           </p>
         </div>
-        <nav className="flex space-x-2 md:flex-col md:space-x-0 md:space-y-1">
+        <nav className="grid grid-cols-2 gap-2 md:flex md:flex-col md:gap-0 md:space-y-1">
           {tabs.map((tab) => (
             <Button
               key={tab.id}
               variant={activeTab === tab.id ? "secondary" : "ghost"}
               className={cn(
-                "justify-start",
+                "justify-start w-full",
                 activeTab === tab.id && "bg-muted hover:bg-muted"
               )}
               onClick={() => setActiveTab(tab.id)}
@@ -415,7 +417,7 @@ export default function ProfilePage() {
         </nav>
       </aside>
       <div className="flex-1 lg:max-w-2xl">
-        <div className="rounded-2xl border border-border/60 bg-card p-6 shadow-sm">
+        <div className="rounded-2xl border border-border/60 bg-card p-4 md:p-6 shadow-sm">
           {activeTab === "general" && <ProfileForm />}
           {activeTab === "security" && <SecuritySettings />}
           {activeTab === "subscription" && <SubscriptionSettings />}
