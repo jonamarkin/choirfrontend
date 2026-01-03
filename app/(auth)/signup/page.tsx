@@ -1,27 +1,30 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
-import { Eye, EyeOff, Mail, Lock, Loader2, User, Phone } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  Mail,
+  Lock,
+  Loader2,
+  User,
+  Phone,
+  AlertCircle,
+} from "lucide-react";
 
 import { cn } from "@/components/ui/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { authService } from "@/services/auth.service";
 
-interface SignUpProps {
-  onSignUp: (userData: {
-    name: string;
-    email: string;
-    phone: string;
-    password: string;
-  }) => void;
-  onBackToLogin: () => void;
-}
-
-export default function SignUp({ onSignUp, onBackToLogin }: SignUpProps) {
-  const [name, setName] = React.useState("");
+export default function SignUp() {
+  const [firstName, setFirstName] = React.useState("");
+  const [lastName, setLastName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [phone, setPhone] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -30,24 +33,31 @@ export default function SignUp({ onSignUp, onBackToLogin }: SignUpProps) {
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
   const [errors, setErrors] = React.useState<{
-    name?: string;
+    firstName?: string;
+    lastName?: string;
     email?: string;
     phone?: string;
     password?: string;
     confirmPassword?: string;
   }>({});
+  const [rootError, setRootError] = React.useState<string | null>(null);
+  const router = useRouter();
 
   const validateForm = () => {
     const newErrors: {
-      name?: string;
+      firstName?: string;
+      lastName?: string;
       email?: string;
       phone?: string;
       password?: string;
       confirmPassword?: string;
     } = {};
 
-    if (!name.trim()) {
-      newErrors.name = "Full name is required";
+    if (!firstName.trim()) {
+      newErrors.firstName = "First name is required";
+    }
+    if (!lastName.trim()) {
+      newErrors.lastName = "Last name is required";
     }
 
     if (!email) {
@@ -84,12 +94,38 @@ export default function SignUp({ onSignUp, onBackToLogin }: SignUpProps) {
     }
 
     setIsLoading(true);
+    setRootError(null);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      await authService.register({
+        username: email, // Use email as username since it's unique
+        email,
+        password1: password,
+        password2: confirmPassword,
+        first_name: firstName,
+        last_name: lastName,
+        phone_number: phone,
+      });
 
-    onSignUp({ name, email, phone, password });
-    setIsLoading(false);
+      router.push("/home");
+    } catch (error: unknown) {
+      console.error("Registration failed:", error);
+      const message =
+        error instanceof Error ? error.message : "Registration failed";
+
+      // Improve UX: Map specific "Email exists" errors to the email field
+      if (
+        message.toLowerCase().includes("email") &&
+        message.toLowerCase().includes("exist")
+      ) {
+        setErrors({ email: message });
+      } else {
+        // Fallback to the global alert for other errors
+        setRootError(message);
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleGoogleSignUp = () => {
@@ -170,41 +206,92 @@ export default function SignUp({ onSignUp, onBackToLogin }: SignUpProps) {
             onSubmit={handleSubmit}
             className="space-y-5"
           >
-            {/* Name Field */}
-            <div className="space-y-2">
-              <Label htmlFor="name" className="text-sm font-medium">
-                Full Name
-              </Label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
-                <Input
-                  id="name"
-                  type="text"
-                  placeholder="John Doe"
-                  value={name}
-                  onChange={(e) => {
-                    setName(e.target.value);
-                    if (errors.name) setErrors({ ...errors, name: undefined });
-                  }}
-                  className={cn(
-                    "pl-10 h-11 rounded-xl border-border/60 bg-background/60 backdrop-blur-sm",
-                    "focus:border-primary/40 focus:ring-primary/20",
-                    "transition-all duration-200",
-                    errors.name &&
-                      "border-red-500/50 focus:border-red-500/50 focus:ring-red-500/20"
-                  )}
-                  disabled={isLoading}
-                />
+            {/* Error Alert */}
+            {rootError && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-3 text-red-500 text-sm"
+              >
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <p>{rootError}</p>
+              </motion.div>
+            )}
+
+            {/* Name Fields */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="firstName" className="text-sm font-medium">
+                  First Name
+                </Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
+                  <Input
+                    id="firstName"
+                    type="text"
+                    placeholder="John"
+                    value={firstName}
+                    onChange={(e) => {
+                      setFirstName(e.target.value);
+                      if (errors.firstName)
+                        setErrors({ ...errors, firstName: undefined });
+                    }}
+                    className={cn(
+                      "pl-10 h-11 rounded-xl border-border/60 bg-background/60 backdrop-blur-sm",
+                      "focus:border-primary/40 focus:ring-primary/20",
+                      "transition-all duration-200",
+                      errors.firstName &&
+                        "border-red-500/50 focus:border-red-500/50 focus:ring-red-500/20"
+                    )}
+                    disabled={isLoading}
+                  />
+                </div>
+                {errors.firstName && (
+                  <motion.p
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-xs text-red-500"
+                  >
+                    {errors.firstName}
+                  </motion.p>
+                )}
               </div>
-              {errors.name && (
-                <motion.p
-                  initial={{ opacity: 0, y: -5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-xs text-red-500"
-                >
-                  {errors.name}
-                </motion.p>
-              )}
+              <div className="space-y-2">
+                <Label htmlFor="lastName" className="text-sm font-medium">
+                  Last Name
+                </Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
+                  <Input
+                    id="lastName"
+                    type="text"
+                    placeholder="Doe"
+                    value={lastName}
+                    onChange={(e) => {
+                      setLastName(e.target.value);
+                      if (errors.lastName)
+                        setErrors({ ...errors, lastName: undefined });
+                    }}
+                    className={cn(
+                      "pl-10 h-11 rounded-xl border-border/60 bg-background/60 backdrop-blur-sm",
+                      "focus:border-primary/40 focus:ring-primary/20",
+                      "transition-all duration-200",
+                      errors.lastName &&
+                        "border-red-500/50 focus:border-red-500/50 focus:ring-red-500/20"
+                    )}
+                    disabled={isLoading}
+                  />
+                </div>
+                {errors.lastName && (
+                  <motion.p
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-xs text-red-500"
+                  >
+                    {errors.lastName}
+                  </motion.p>
+                )}
+              </div>
             </div>
 
             {/* Email Field */}
@@ -221,7 +308,8 @@ export default function SignUp({ onSignUp, onBackToLogin }: SignUpProps) {
                   value={email}
                   onChange={(e) => {
                     setEmail(e.target.value);
-                    if (errors.email) setErrors({ ...errors, email: undefined });
+                    if (errors.email)
+                      setErrors({ ...errors, email: undefined });
                   }}
                   className={cn(
                     "pl-10 h-11 rounded-xl border-border/60 bg-background/60 backdrop-blur-sm",
@@ -258,7 +346,8 @@ export default function SignUp({ onSignUp, onBackToLogin }: SignUpProps) {
                   value={phone}
                   onChange={(e) => {
                     setPhone(e.target.value);
-                    if (errors.phone) setErrors({ ...errors, phone: undefined });
+                    if (errors.phone)
+                      setErrors({ ...errors, phone: undefined });
                   }}
                   className={cn(
                     "pl-10 h-11 rounded-xl border-border/60 bg-background/60 backdrop-blur-sm",
@@ -448,14 +537,12 @@ export default function SignUp({ onSignUp, onBackToLogin }: SignUpProps) {
           {/* Footer */}
           <div className="mt-6 text-center text-sm text-muted-foreground">
             Already have an account?{" "}
-            <button
-              type="button"
-              onClick={onBackToLogin}
+            <Link
+              href="/login"
               className="text-primary hover:text-primary/80 transition-colors font-medium"
-              disabled={isLoading}
             >
               Sign in
-            </button>
+            </Link>
           </div>
 
           {/* Footer Note */}

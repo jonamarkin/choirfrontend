@@ -1,5 +1,10 @@
 import { apiClient } from "@/lib/api-client";
-import { LoginCredentials, AuthResponse, User } from "@/types/auth";
+import {
+  LoginCredentials,
+  AuthResponse,
+  User,
+  RegisterCredentials,
+} from "@/types/auth";
 
 export const authService = {
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
@@ -17,11 +22,19 @@ export const authService = {
     return response;
   },
 
-  async register(
-    data: Partial<User> & { password: string }
-  ): Promise<AuthResponse> {
+  async register(data: RegisterCredentials): Promise<AuthResponse> {
     // dj-rest-auth registration endpoint
-    return apiClient.post<AuthResponse>("/auth/register/", data);
+    const response = await apiClient.post<AuthResponse>(
+      "/auth/register/",
+      data
+    );
+
+    if (response.access && typeof window !== "undefined") {
+      localStorage.setItem("access_token", response.access);
+      localStorage.setItem("refresh_token", response.refresh);
+    }
+
+    return response;
   },
 
   async logout(): Promise<void> {
