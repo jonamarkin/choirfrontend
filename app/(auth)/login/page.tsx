@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { Eye, EyeOff, Mail, Lock, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, Loader2, AlertCircle } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { cn } from "@/components/ui/utils";
@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
-import router from "next/dist/shared/lib/router/router";
+import { authService } from "@/services/auth.service";
 
 export default function Login() {
   const [email, setEmail] = React.useState("");
@@ -23,6 +23,7 @@ export default function Login() {
     email?: string;
     password?: string;
   }>({});
+  const [rootError, setRootError] = React.useState<string | null>(null);
   const router = useRouter();
 
   const validateForm = () => {
@@ -52,16 +53,30 @@ export default function Login() {
     }
 
     setIsLoading(true);
+    setRootError(null);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      await authService.login({ email, password }); // This line was already here
+      router.push("/home");
+    } catch (error: unknown) {
+      console.error("Login failed:", error);
 
-    // Use the selected role for testing
-    console.log("Login:", { email, password });
-    setIsLoading(false);
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Something went wrong. Please try again.";
+      setRootError(message);
 
-    //router push("/dashboard");
-    router.push("/home");
+      // Optional: Highlight fields if the error suggests invalid credentials
+      if (
+        message.toLowerCase().includes("invalid") ||
+        message.toLowerCase().includes("credential")
+      ) {
+        setErrors({ email: " ", password: " " });
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -135,6 +150,18 @@ export default function Login() {
             onSubmit={handleSubmit}
             className="space-y-5"
           >
+            {/* Error Alert */}
+            {rootError && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-3 text-red-500 text-sm"
+              >
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <p>{rootError}</p>
+              </motion.div>
+            )}
+
             {/* Email Field */}
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium">
@@ -306,7 +333,7 @@ export default function Login() {
 
           {/* Footer */}
           <div className="mt-6 text-center text-sm text-muted-foreground">
-            Don't have an account?{" "}
+            Don&apos;t have an account?{" "}
             <Link
               href="/signup"
               className="text-primary hover:text-primary/80 transition-colors font-medium"
