@@ -17,6 +17,10 @@ export const authService = {
     if (response.access && typeof window !== "undefined") {
       localStorage.setItem("access_token", response.access);
       localStorage.setItem("refresh_token", response.refresh);
+      // Store user details for simple access checks
+      if (response.user) {
+        localStorage.setItem("user", JSON.stringify(response.user));
+      }
     }
 
     return response;
@@ -48,6 +52,10 @@ export const authService = {
     if (response.access && typeof window !== "undefined") {
       localStorage.setItem("access_token", response.access);
       localStorage.setItem("refresh_token", response.refresh);
+      // Store user details for simple access checks
+      if (response.user) {
+        localStorage.setItem("user", JSON.stringify(response.user));
+      }
     }
 
     return response;

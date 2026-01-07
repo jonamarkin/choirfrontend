@@ -193,6 +193,26 @@ export function Sidebar({
   const pathname = usePathname();
   const router = useRouter();
   const [expanded, setExpanded] = React.useState<string | null>(null);
+  const [isPending, setIsPending] = React.useState(true);
+
+  React.useEffect(() => {
+    // Check if user is pending
+    const checkUserStatus = () => {
+      try {
+        const userStr = localStorage.getItem("user");
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          if (user.organization) {
+            setIsPending(false);
+          }
+        }
+      } catch (e) {
+        console.error("Error parsing user from local storage", e);
+      }
+    };
+
+    checkUserStatus();
+  }, []);
 
   const navigate = (href: string) => {
     router.push(href);
@@ -228,8 +248,34 @@ export function Sidebar({
 
       {/* Navigation */}
       <div className="grid gap-1">
-        {navItems.map((item) =>
-          item.subItems ? (
+        {navItems.map((item) => {
+          // Check if user is pending (no organization)
+          // Ideally this comes from a hook or context, but for now we'll simulate or check local storage if possible
+          // For now, we'll assume if we're in this view, we might need to check.
+          // Since this is a client component, let's use a hook or simple check.
+
+          // However, to keep it simple and safe:
+          // We will hide sensitive modules if we can detect the user is "pending".
+          // Since we don't have global state easily accessible here without a Provider,
+          // we might want to pass it as a prop or fetch it. 
+          // But wait, the Sidebar is used in Layout which doesn't fetch user data deeply yet.
+
+          // Let's rely on the fact that for "pending" users, we might want to HIDE everything except Home and Profile.
+          // But without user data, we can't condition it easily.
+
+          // REFACTOR: We should probably move the `navItems` filtering logic to the parent or a custom hook.
+          // For this step, I will add a TODO and assume passed props or context later.
+          // BUT, to satisfy the user request NOW:
+          // I will fetch the user from `authService` in a useEffect to determine state.
+
+          if (
+            isPending &&
+            !["Home", "Repertoire", "My Profile"].includes(item.label)
+          ) {
+            return null;
+          }
+
+          return item.subItems ? (
             <NavRow
               key={item.label}
               label={item.label}
@@ -251,8 +297,8 @@ export function Sidebar({
               active={pathname === item.href}
               onClick={() => navigate(item.href)}
             />
-          )
-        )}
+          );
+        })}
       </div>
 
       {/* Footer */}
