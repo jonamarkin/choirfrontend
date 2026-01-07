@@ -37,12 +37,28 @@ export const authService = {
     return response;
   },
 
+  async loginWithGoogle(accessToken: string): Promise<AuthResponse> {
+    const response = await apiClient.post<AuthResponse>(
+      "/auth/social/google/",
+      {
+        access_token: accessToken,
+      }
+    );
+
+    if (response.access && typeof window !== "undefined") {
+      localStorage.setItem("access_token", response.access);
+      localStorage.setItem("refresh_token", response.refresh);
+    }
+
+    return response;
+  },
+
   async logout(): Promise<void> {
     if (typeof window !== "undefined") {
       const refresh = localStorage.getItem("refresh_token");
       if (refresh) {
         // Best effort to notify backend
-        await apiClient.post("/auth/logout", { refresh }).catch(() => {});
+        await apiClient.post("/auth/logout", { refresh }).catch(() => { });
       }
       localStorage.removeItem("access_token");
       localStorage.removeItem("refresh_token");

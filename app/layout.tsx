@@ -2,6 +2,7 @@ import "./globals.css";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ModeToggle } from "@/components/mode-toggle";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 
 export default function RootLayout({
   children,
@@ -17,12 +18,14 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <TooltipProvider delayDuration={120}>
-            <div className="absolute right-4 top-4 z-50">
-              <ModeToggle />
-            </div>
-            {children}
-          </TooltipProvider>
+          <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}>
+            <TooltipProvider delayDuration={120}>
+              <div className="absolute right-4 top-4 z-50">
+                <ModeToggle />
+              </div>
+              {children}
+            </TooltipProvider>
+          </GoogleOAuthProvider>
         </ThemeProvider>
       </body>
     </html>
