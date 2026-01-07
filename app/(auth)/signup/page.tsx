@@ -24,6 +24,13 @@ import { authService } from "@/services/auth.service";
 import { GoogleAuthButton } from "@/components/auth/google-auth-button";
 
 export default function SignUp() {
+  React.useEffect(() => {
+    // Clear any stale session data
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+    localStorage.removeItem("user");
+  }, []);
+
   const [firstName, setFirstName] = React.useState("");
   const [lastName, setLastName] = React.useState("");
   const [email, setEmail] = React.useState("");
@@ -98,7 +105,7 @@ export default function SignUp() {
     setRootError(null);
 
     try {
-      await authService.register({
+      const response = await authService.register({
         username: email, // Use email as username since it's unique
         email,
         password1: password,
@@ -108,7 +115,16 @@ export default function SignUp() {
         phone_number: phone,
       });
 
-      router.push("/home");
+      // Check if we actually have tokens (user might be inactive/pending approval)
+      if (response.access) {
+        router.push("/home");
+      } else {
+        // Registration successful but no auto-login (likely inactive)
+        // Show error/info and redirect to login
+        // We'll use setRootError or a toast if available, but for now specific error message
+        alert("Account created successfully! Please wait for admin approval before logging in.");
+        router.push("/login"); // Redirect to login
+      }
     } catch (error: unknown) {
       console.error("Registration failed:", error);
       const message =

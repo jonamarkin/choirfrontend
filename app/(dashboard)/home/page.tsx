@@ -37,7 +37,11 @@ export default function Home({ userEmail, userRole }: HomeProps) {
       if (userStr) {
         const user = JSON.parse(userStr);
         setFirstName(user.first_name || "Member");
-        if (user.organization) {
+
+        // Active status holds higher power. If not active, show pending banner.
+        if (!user.is_active) {
+          setIsPending(true);
+        } else {
           setIsPending(false);
         }
       }

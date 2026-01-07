@@ -194,6 +194,7 @@ export function Sidebar({
   const router = useRouter();
   const [expanded, setExpanded] = React.useState<string | null>(null);
   const [isPending, setIsPending] = React.useState(true);
+  const [userRole, setUserRole] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     // Check if user is pending
@@ -202,9 +203,22 @@ export function Sidebar({
         const userStr = localStorage.getItem("user");
         if (userStr) {
           const user = JSON.parse(userStr);
-          if (user.organization) {
+          setUserRole(user.role);
+
+          console.log("Sidebar Debug - User:", user);
+          console.log("Sidebar Debug - is_active:", user.is_active);
+          console.log("Sidebar Debug - Role:", user.role);
+
+          // Active status holds higher power. If not active, treat as pending.
+          if (user.is_active === false) { // Strict check to be sure
+            console.log("Sidebar Debug - Setting Pending to TRUE");
+            setIsPending(true);
+          } else {
+            console.log("Sidebar Debug - Setting Pending to FALSE");
             setIsPending(false);
           }
+        } else {
+          console.log("Sidebar Debug - No user found in localStorage");
         }
       } catch (e) {
         console.error("Error parsing user from local storage", e);
@@ -235,7 +249,7 @@ export function Sidebar({
         <div className="flex-1">
           <div className="text-[17px] font-semibold">VocalEssence</div>
           <div className="mt-1 inline-flex rounded-full bg-[#5A1E6E]/10 px-2.5 py-0.5 text-[11px] font-medium text-[#5A1E6E]">
-            Admin
+            {userRole ? userRole.replace("_", " ").toUpperCase() : "..."}
           </div>
         </div>
 
@@ -249,31 +263,58 @@ export function Sidebar({
       {/* Navigation */}
       <div className="grid gap-1">
         {navItems.map((item) => {
-          // Check if user is pending (no organization)
-          // Ideally this comes from a hook or context, but for now we'll simulate or check local storage if possible
-          // For now, we'll assume if we're in this view, we might need to check.
-          // Since this is a client component, let's use a hook or simple check.
+          // Permission Logic
+          let hasPermission = false;
 
-          // However, to keep it simple and safe:
-          // We will hide sensitive modules if we can detect the user is "pending".
-          // Since we don't have global state easily accessible here without a Provider,
-          // we might want to pass it as a prop or fetch it. 
-          // But wait, the Sidebar is used in Layout which doesn't fetch user data deeply yet.
+          if (isPending) {
+            // Pending users only see specific items
+            const allowed = ["Home", "Repertoire", "My Profile"];
+            if (allowed.includes(item.label)) hasPermission = true;
+          } else if (userRole) {
+            // Role-based permissions
+            const permissions: Record<string, string[]> = {
+              member: ["Home", "Programs", "Repertoire", "My Profile"],
+              attendance_officer: [
+                "Home",
+                "Attendance",
+                "Members",
+                "Programs",
+                "Repertoire",
+                "My Profile",
+              ],
+              finance_admin: [
+                "Home",
+                "Finance",
+                "Subscriptions",
+                "Members",
+                "My Profile",
+              ],
+              treasurer: [
+                "Home",
+                "Finance",
+                "Subscriptions",
+                "Members",
+                "My Profile",
+              ],
+              // Admins get everything
+              admin: ["*"],
+              super_admin: ["*"],
+              system_admin: ["*"],
+            };
 
-          // Let's rely on the fact that for "pending" users, we might want to HIDE everything except Home and Profile.
-          // But without user data, we can't condition it easily.
+            const allowedItems = permissions[userRole] || [];
 
-          // REFACTOR: We should probably move the `navItems` filtering logic to the parent or a custom hook.
-          // For this step, I will add a TODO and assume passed props or context later.
-          // BUT, to satisfy the user request NOW:
-          // I will fetch the user from `authService` in a useEffect to determine state.
-
-          if (
-            isPending &&
-            !["Home", "Repertoire", "My Profile"].includes(item.label)
-          ) {
-            return null;
+            if (allowedItems.includes("*")) {
+              hasPermission = true;
+            } else {
+              if (allowedItems.includes(item.label)) hasPermission = true;
+            }
+          } else {
+            // Fallback if no role found but not pending (show minimal safe items)
+            if (item.label === "Home") hasPermission = true;
           }
+
+          if (!hasPermission) return null;
 
           return item.subItems ? (
             <NavRow

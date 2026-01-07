@@ -5,11 +5,13 @@ export interface User {
   first_name: string;
   last_name: string;
   role:
-    | "super_admin"
-    | "admin"
-    | "finance_admin"
-    | "attendance_officer"
-    | "member";
+  | "system_admin"
+  | "super_admin"
+  | "admin"
+  | "finance_admin"
+  | "attendance_officer"
+  | "treasurer"
+  | "member";
   organization: string | null;
   phone_number?: string;
   profile_picture?: string | null;
