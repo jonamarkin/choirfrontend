@@ -79,7 +79,7 @@ export interface UserSubscription {
     can_make_payment: {
         allowed: boolean;
         message: string;
-    } | string;
+    } | string | boolean;
     payment_progress_percentage: string;
     start_date: string;
     end_date: string;
@@ -178,8 +178,13 @@ export interface PaymentTransaction {
  * Helper to parse can_make_payment which can be string or object
  */
 export function parseCanMakePayment(
-    value: { allowed: boolean; message: string } | string
+    value: { allowed: boolean; message: string } | string | boolean
 ): { allowed: boolean; message: string } {
+    if (typeof value === "boolean") {
+        return value
+            ? { allowed: true, message: "" }
+            : { allowed: false, message: "Payment currently unavailable" };
+    }
     if (typeof value === "string") {
         try {
             return JSON.parse(value);

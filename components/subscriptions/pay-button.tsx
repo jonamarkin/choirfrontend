@@ -9,6 +9,13 @@ import { Button } from "@/components/ui/button";
 import { UserSubscription, parseCanMakePayment } from "@/types/subscription";
 import { subscriptionService } from "@/services/subscription.service";
 import { getPaymentErrorMessage } from "@/utils/paymentErrors";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { cn } from "@/components/ui/utils";
 
 interface PayButtonProps {
     subscription: UserSubscription;
@@ -58,7 +65,27 @@ export function PayButton({
     }
 
     if (!canMakePayment.allowed) {
-        return null;
+        return (
+            <TooltipProvider>
+                <Tooltip delayDuration={0}>
+                    <TooltipTrigger asChild>
+                        <div className={cn("inline-block", className)}>
+                            <Button
+                                disabled
+                                size="sm"
+                                className="h-8 gap-1.5 text-xs w-full"
+                            >
+                                <CreditCard className="h-3 w-3" />
+                                Pay Now
+                            </Button>
+                        </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>{canMakePayment.message || "Payment unavailable"}</p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+        );
     }
 
     return (
@@ -67,7 +94,7 @@ export function PayButton({
                 onClick={handlePayment}
                 disabled={isLoading}
                 size="sm"
-                className="h-8 gap-1.5 text-xs bg-primary hover:bg-primary/90"
+                className="h-8 gap-1.5 text-xs bg-primary hover:bg-primary/90 w-full"
             >
                 {isLoading ? (
                     <>
