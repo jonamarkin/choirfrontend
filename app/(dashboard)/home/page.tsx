@@ -16,6 +16,7 @@ import { cn } from "@/components/ui/utils";
 import { Button } from "@/components/ui/button";
 import { PremiumStatCard } from "@/components/premium-stat-card";
 import { gradientTextStyles, cardBaseStyle } from "@/utils/premium-styles";
+import { PendingSubscriptionsWidget } from "@/components/subscriptions/pending-subscriptions-widget";
 
 interface HomeProps {
   userEmail: string;
@@ -91,6 +92,9 @@ export default function Home({ userEmail, userRole }: HomeProps) {
             </div>
           </div>
         )}
+
+        {/* Pending Subscriptions Widget - show for verified users */}
+        {!isPending && <PendingSubscriptionsWidget />}
 
         {/* Stats Cards - Simplified */}
         <div className="grid gap-6 md:grid-cols-3">

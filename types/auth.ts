@@ -13,9 +13,36 @@ export interface User {
   | "treasurer"
   | "member";
   organization: string | null;
+  organization_name?: string;
+  has_organization?: boolean;
   phone_number?: string;
   profile_picture?: string | null;
+  auth_method?: "email" | "google" | "github" | "microsoft";
+  email_verified?: boolean;
   is_active: boolean;
+  subscriptions?: UserSubscriptionSummary[];
+  created_at?: string;
+  last_login_at?: string;
+}
+
+export interface UserSubscriptionSummary {
+  id: string;
+  subscription_name: string;
+  status: "fully_paid" | "partially_paid" | "overdue" | "not_paid" | "refunded";
+  outstanding_amount: string;
+}
+
+export interface ProfileUpdateRequest {
+  first_name?: string;
+  last_name?: string;
+  phone_number?: string;
+  profile_picture?: string;
+}
+
+export interface ChangePasswordRequest {
+  old_password: string;
+  new_password: string;
+  new_password_confirm: string;
 }
 
 export interface AuthResponse {
