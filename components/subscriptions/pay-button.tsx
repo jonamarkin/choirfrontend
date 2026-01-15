@@ -16,6 +16,7 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/components/ui/utils";
+import { PaymentAmountDialog } from "./payment-amount-dialog";
 
 interface PayButtonProps {
     subscription: UserSubscription;
@@ -28,41 +29,8 @@ export function PayButton({
     className,
     onPaymentInitiated,
 }: PayButtonProps) {
-    const [isLoading, setIsLoading] = React.useState(false);
-
+    const [showDialog, setShowDialog] = React.useState(false);
     const canMakePayment = parseCanMakePayment(subscription.can_make_payment);
-
-    async function handlePayment() {
-        if (!canMakePayment.allowed) {
-            toast.error(canMakePayment.message);
-            return;
-        }
-
-        try {
-            setIsLoading(true);
-
-            const payment = await subscriptionService.initiatePayment(subscription.id);
-
-            // Store transaction ID for status checking after return
-            if (typeof window !== "undefined") {
-                sessionStorage.setItem("pending_transaction_id", payment.transaction_id);
-                sessionStorage.setItem(
-                    "pending_subscription_name",
-                    subscription.subscription_name
-                );
-            }
-
-            onPaymentInitiated?.();
-
-            // Redirect to Hubtel checkout
-            window.location.href = payment.checkout_url;
-        } catch (error) {
-            const message = getPaymentErrorMessage(error);
-            toast.error(message);
-        } finally {
-            setIsLoading(false);
-        }
-    }
 
     if (!canMakePayment.allowed) {
         return (
@@ -89,25 +57,24 @@ export function PayButton({
     }
 
     return (
-        <motion.div whileTap={{ scale: 0.97 }} className={className}>
-            <Button
-                onClick={handlePayment}
-                disabled={isLoading}
-                size="sm"
-                className="h-8 gap-1.5 text-xs bg-primary hover:bg-primary/90 w-full"
-            >
-                {isLoading ? (
-                    <>
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                        Processing
-                    </>
-                ) : (
-                    <>
-                        <CreditCard className="h-3 w-3" />
-                        Pay Now
-                    </>
-                )}
-            </Button>
-        </motion.div>
+        <>
+            <motion.div whileTap={{ scale: 0.97 }} className={className}>
+                <Button
+                    onClick={() => setShowDialog(true)}
+                    size="sm"
+                    className="h-8 gap-1.5 text-xs bg-primary hover:bg-primary/90 w-full"
+                >
+                    <CreditCard className="h-3 w-3" />
+                    Pay Now
+                </Button>
+            </motion.div>
+
+            <PaymentAmountDialog
+                subscription={subscription}
+                open={showDialog}
+                onOpenChange={setShowDialog}
+                onPaymentInitiated={onPaymentInitiated}
+            />
+        </>
     );
 }
