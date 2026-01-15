@@ -302,7 +302,7 @@ export default function ManageSubscriptionPlans() {
     <div className="space-y-8">
       {/* Header */}
       <div className="flex items-start justify-between">
-        <div className="ml-0 md:ml-0 pl-14 md:pl-0">
+        <div>
           <h1 className="tracking-tight bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent">
             Manage Subscription Plans
           </h1>
