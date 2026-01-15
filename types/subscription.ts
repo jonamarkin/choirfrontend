@@ -71,8 +71,8 @@ export interface UserSubscription {
     subscription_amount: string;
     status: SubscriptionStatus;
     amount_paid: string;
-    outstanding_amount: string;
-    payment_count: string;
+    outstanding_amount: number;
+    payment_count: number;
     payment_date: string | null;
     payment_reference: string;
     payment_history: PaymentHistoryItem[] | string;
@@ -80,7 +80,7 @@ export interface UserSubscription {
         allowed: boolean;
         message: string;
     } | string | boolean;
-    payment_progress_percentage: string;
+    payment_progress_percentage: number;
     start_date: string;
     end_date: string;
     notes: string;

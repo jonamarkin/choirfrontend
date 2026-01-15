@@ -271,7 +271,6 @@ export default function Subscriptions() {
                   <TableBody>
                     {currentSubscriptions.map((subscription, index) => {
                       const amount = parseFloat(subscription.subscription_amount) || 0;
-                      const outstanding = parseFloat(subscription.outstanding_amount) || 0;
 
                       return (
                         <TableRow
@@ -304,17 +303,17 @@ export default function Subscriptions() {
                             <div
                               className={cn(
                                 "font-semibold",
-                                outstanding > 0
+                                subscription.outstanding_amount > 0
                                   ? "text-[#F36A21]"
                                   : "text-muted-foreground"
                               )}
                             >
-                              GH₵ {outstanding.toFixed(2)}
+                              GH₵ {subscription.outstanding_amount.toFixed(2)}
                             </div>
                           </TableCell>
                           <TableCell className="py-3 px-4 text-center">
                             <div className="flex items-center justify-center gap-2">
-                              {outstanding > 0 && (
+                              {subscription.outstanding_amount > 0 && (
                                 <PayButton
                                   subscription={subscription}
                                   onPaymentInitiated={() => mutate()}
@@ -437,31 +436,25 @@ export default function Subscriptions() {
                     <div className="flex justify-between text-xs text-muted-foreground">
                       <span>Payment Progress</span>
                       <span>
-                        {parseFloat(
-                          selectedSubscription.payment_progress_percentage
-                        ).toFixed(0)}
+                        {selectedSubscription.payment_progress_percentage.toFixed(0)}
                         %
                       </span>
                     </div>
                     <Progress
-                      value={parseFloat(
-                        selectedSubscription.payment_progress_percentage
-                      )}
+                      value={selectedSubscription.payment_progress_percentage}
                       className="h-2"
                     />
                   </div>
 
                   {/* Outstanding */}
-                  {parseFloat(selectedSubscription.outstanding_amount) > 0 && (
+                  {selectedSubscription.outstanding_amount > 0 && (
                     <div className="p-3 rounded-lg bg-[#F36A21]/10 border border-[#F36A21]/20">
                       <div className="text-xs text-muted-foreground mb-1">
                         Outstanding Balance
                       </div>
                       <div className="text-lg font-bold text-[#F36A21]">
                         GH₵{" "}
-                        {parseFloat(
-                          selectedSubscription.outstanding_amount
-                        ).toFixed(2)}
+                        {selectedSubscription.outstanding_amount.toFixed(2)}
                       </div>
                     </div>
                   )}
@@ -499,7 +492,7 @@ export default function Subscriptions() {
 
               {/* Footer Actions */}
               <div className="border-t border-border/20 px-6 py-4 space-y-2">
-                {parseFloat(selectedSubscription.outstanding_amount) > 0 &&
+                {selectedSubscription.outstanding_amount > 0 &&
                   parseCanMakePayment(selectedSubscription.can_make_payment)
                     .allowed && (
                     <PayButton
