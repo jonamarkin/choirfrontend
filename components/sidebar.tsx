@@ -19,6 +19,8 @@ import {
   User,
 } from "lucide-react";
 
+import { useAuth } from "@/components/providers/auth-provider";
+
 import { cn } from "@/components/ui/utils";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -195,6 +197,7 @@ export function Sidebar({
   const [expanded, setExpanded] = React.useState<string | null>(null);
   const [isPending, setIsPending] = React.useState(true);
   const [userRole, setUserRole] = React.useState<string | null>(null);
+  const { logout } = useAuth();
 
   React.useEffect(() => {
     // Check if user is pending
@@ -352,7 +355,13 @@ export function Sidebar({
               label={item.label}
               icon={item.icon}
               active={pathname === item.href}
-              onClick={() => navigate(item.href)}
+              onClick={() => {
+                if (item.label === "Sign out") {
+                  logout();
+                } else {
+                  navigate(item.href);
+                }
+              }}
             />
           ))}
         </div>

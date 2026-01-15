@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ModeToggle } from "@/components/mode-toggle";
+import { useAuth } from "@/components/providers/auth-provider";
+import { useRouter } from "next/navigation";
 
 interface DashboardHeaderProps {
     onOpenMobileMenu: () => void;
@@ -23,6 +25,8 @@ interface DashboardHeaderProps {
 
 export function DashboardHeader({ onOpenMobileMenu }: DashboardHeaderProps) {
     const pathname = usePathname();
+    const { logout } = useAuth();
+    const router = useRouter();
 
     // Determine title based on path
     const getTitle = (path: string) => {
@@ -103,10 +107,17 @@ export function DashboardHeader({ onOpenMobileMenu }: DashboardHeaderProps) {
                             </div>
                         </DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem>Profile</DropdownMenuItem>
-                        <DropdownMenuItem>Settings</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => router.push("/profile")}>
+                            Profile
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => router.push("/settings")}>
+                            Settings
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive focus:text-destructive">
+                        <DropdownMenuItem
+                            className="text-destructive focus:text-destructive cursor-pointer"
+                            onClick={() => logout()}
+                        >
                             Log out
                         </DropdownMenuItem>
                     </DropdownMenuContent>
