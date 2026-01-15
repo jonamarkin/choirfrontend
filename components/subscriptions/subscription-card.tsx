@@ -65,9 +65,8 @@ export function SubscriptionCard({
 }: SubscriptionCardProps) {
     const amount = parseFloat(subscription.subscription_amount) || 0;
     const amountPaid = parseFloat(subscription.amount_paid) || 0;
-    const outstanding = parseFloat(subscription.outstanding_amount) || 0;
-    const progressPercentage =
-        parseFloat(subscription.payment_progress_percentage) || 0;
+    const outstanding = subscription.outstanding_amount || 0;
+    const progressPercentage = subscription.payment_progress_percentage || 0;
     const canMakePayment = parseCanMakePayment(subscription.can_make_payment);
 
     return (
@@ -105,7 +104,7 @@ export function SubscriptionCard({
                 </div>
 
                 {/* Pay Button */}
-                {showPayButton && canMakePayment.allowed && outstanding > 0 && (
+                {showPayButton && outstanding > 0 && (
                     <PayButton
                         subscription={subscription}
                         onPaymentInitiated={onPaymentInitiated}
