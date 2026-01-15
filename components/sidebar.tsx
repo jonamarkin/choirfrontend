@@ -195,40 +195,10 @@ export function Sidebar({
   const pathname = usePathname();
   const router = useRouter();
   const [expanded, setExpanded] = React.useState<string | null>(null);
-  const [isPending, setIsPending] = React.useState(true);
-  const [userRole, setUserRole] = React.useState<string | null>(null);
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
 
   React.useEffect(() => {
-    // Check if user is pending
-    const checkUserStatus = () => {
-      try {
-        const userStr = localStorage.getItem("user");
-        if (userStr) {
-          const user = JSON.parse(userStr);
-          setUserRole(user.role);
-
-          console.log("Sidebar Debug - User:", user);
-          console.log("Sidebar Debug - is_active:", user.is_active);
-          console.log("Sidebar Debug - Role:", user.role);
-
-          // Active status holds higher power. If not active, treat as pending.
-          if (user.is_active === false) { // Strict check to be sure
-            console.log("Sidebar Debug - Setting Pending to TRUE");
-            setIsPending(true);
-          } else {
-            console.log("Sidebar Debug - Setting Pending to FALSE");
-            setIsPending(false);
-          }
-        } else {
-          console.log("Sidebar Debug - No user found in localStorage");
-        }
-      } catch (e) {
-        console.error("Error parsing user from local storage", e);
-      }
-    };
-
-    checkUserStatus();
+    // No longer need to manually parse local storage since we have useAuth
   }, []);
 
   const navigate = (href: string) => {
@@ -250,9 +220,11 @@ export function Sidebar({
         </div>
 
         <div className="flex-1">
-          <div className="text-[17px] font-semibold">VocalEssence</div>
+          <div className="text-[17px] font-semibold truncate max-w-[160px]">
+            {user ? `${user.first_name} ${user.last_name}` : "VocalEssence"}
+          </div>
           <div className="mt-1 inline-flex rounded-full bg-[#5A1E6E]/10 px-2.5 py-0.5 text-[11px] font-medium text-[#5A1E6E]">
-            {userRole ? userRole.replace("_", " ").toUpperCase() : "..."}
+            {user?.role ? user.role.replace("_", " ").toUpperCase() : "..."}
           </div>
         </div>
 
@@ -269,11 +241,16 @@ export function Sidebar({
           // Permission Logic
           let hasPermission = false;
 
-          if (isPending) {
+          if (!user) return null;
+
+          // If not active, treat as pending
+          const isUserPending = user.is_active === false;
+
+          if (isUserPending) {
             // Pending users only see specific items
-            const allowed = ["Home", "Repertoire", "My Profile"];
+            const allowed = ["Home", "Repertoire", "My Profile", "Sign out"]; // Added Sign out just in case it appears here
             if (allowed.includes(item.label)) hasPermission = true;
-          } else if (userRole) {
+          } else if (user.role) {
             // Role-based permissions
             const permissions: Record<string, string[]> = {
               member: ["Home", "Programs", "Repertoire", "My Profile"],
@@ -305,7 +282,7 @@ export function Sidebar({
               system_admin: ["*"],
             };
 
-            const allowedItems = permissions[userRole] || [];
+            const allowedItems = permissions[user.role] || [];
 
             if (allowedItems.includes("*")) {
               hasPermission = true;

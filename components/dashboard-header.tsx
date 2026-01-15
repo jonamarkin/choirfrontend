@@ -25,7 +25,7 @@ interface DashboardHeaderProps {
 
 export function DashboardHeader({ onOpenMobileMenu }: DashboardHeaderProps) {
     const pathname = usePathname();
-    const { logout } = useAuth();
+    const { logout, user } = useAuth();
     const router = useRouter();
 
     // Determine title based on path
@@ -41,6 +41,12 @@ export function DashboardHeader({ onOpenMobileMenu }: DashboardHeaderProps) {
         if (path.includes("/manage-subscriptions")) return "Manage Plans";
         if (path.includes("/manage-users")) return "User Management";
         return "VocalEssence";
+    };
+
+    // Helper for initials
+    const getInitials = () => {
+        if (!user) return "VE";
+        return `${user.first_name?.[0] || ""}${user.last_name?.[0] || ""}`.toUpperCase() || "VE";
     };
 
     return (
@@ -92,7 +98,7 @@ export function DashboardHeader({ onOpenMobileMenu }: DashboardHeaderProps) {
                             <Avatar className="h-9 w-9 border border-border">
                                 <AvatarImage src="/placeholder-avatar.jpg" alt="User" />
                                 <AvatarFallback className="bg-primary/10 text-primary font-medium">
-                                    VE
+                                    {getInitials()}
                                 </AvatarFallback>
                             </Avatar>
                         </Button>
@@ -100,9 +106,11 @@ export function DashboardHeader({ onOpenMobileMenu }: DashboardHeaderProps) {
                     <DropdownMenuContent className="w-56" align="end" forceMount>
                         <DropdownMenuLabel className="font-normal">
                             <div className="flex flex-col space-y-1">
-                                <p className="text-sm font-medium leading-none">Account</p>
+                                <p className="text-sm font-medium leading-none">
+                                    {user ? `${user.first_name} ${user.last_name}` : "Account"}
+                                </p>
                                 <p className="text-xs leading-none text-muted-foreground">
-                                    View Profile
+                                    {user?.email || "View Profile"}
                                 </p>
                             </div>
                         </DropdownMenuLabel>
