@@ -45,11 +45,12 @@ export const authService = {
     return response;
   },
 
-  async loginWithGoogle(accessToken: string): Promise<AuthResponse> {
+  async loginWithGoogle(code: string): Promise<AuthResponse> {
     const response = await apiClient.post<AuthResponse>(
       "/auth/social/google",
       {
-        access_token: accessToken,
+        code: code,
+        callback_url: window.location.origin,
       }
     );
 

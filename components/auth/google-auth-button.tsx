@@ -21,10 +21,11 @@ export function GoogleAuthButton({
     const [isLoading, setIsLoading] = useState(false);
 
     const login = useGoogleLogin({
-        onSuccess: async (tokenResponse) => {
+        flow: 'auth-code',
+        onSuccess: async (codeResponse) => {
             try {
                 setIsLoading(true);
-                await authService.loginWithGoogle(tokenResponse.access_token);
+                await authService.loginWithGoogle(codeResponse.code);
                 toast.success("Successfully signed in with Google");
                 router.push("/home");
             } catch (error) {
