@@ -52,6 +52,7 @@ import {
   parseCanMakePayment,
 } from "@/types/subscription";
 import { PayButton } from "@/components/subscriptions/pay-button";
+import { TransactionHistoryList } from "@/components/subscriptions/transaction-history-list";
 
 // Status display labels
 const statusLabels: Record<SubscriptionStatus, string> = {
@@ -431,6 +432,14 @@ export default function Subscriptions() {
                     </div>
                   </div>
 
+                  {/* Transaction History */}
+                  <div className="space-y-4 pt-2">
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Transaction History
+                    </h3>
+                    <TransactionHistoryList userSubscriptionId={selectedSubscription.id} />
+                  </div>
+
                   {/* Progress */}
                   <div className="space-y-2">
                     <div className="flex justify-between text-xs text-muted-foreground">
@@ -516,6 +525,6 @@ export default function Subscriptions() {
           )}
         </SheetContent>
       </Sheet>
-    </div>
+    </div >
   );
 }

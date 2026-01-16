@@ -56,6 +56,7 @@ import {
   SubscriptionCreateRequest,
 } from "@/services/subscription-admin.service";
 import { Subscription } from "@/types/subscription";
+import { AssigneesList } from "@/components/subscriptions/assignees-list";
 
 // Derive status from dates
 function getSubscriptionStatus(
@@ -120,6 +121,7 @@ export default function ManageSubscriptionPlans() {
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const [isEditing, setIsEditing] = React.useState(false);
   const [isAddingPlan, setIsAddingPlan] = React.useState(false);
+  const [isViewingAssignees, setIsViewingAssignees] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [currentPage, setCurrentPage] = React.useState(1);
   const [itemsPerPage, setItemsPerPage] = React.useState(10);
@@ -149,6 +151,7 @@ export default function ManageSubscriptionPlans() {
       is_active: plan.is_active,
     });
     setIsEditing(false);
+    setIsViewingAssignees(false);
     setDrawerOpen(true);
   };
 
@@ -156,11 +159,18 @@ export default function ManageSubscriptionPlans() {
     setDrawerOpen(false);
     setIsEditing(false);
     setIsAddingPlan(false);
+    setIsViewingAssignees(false);
     setDeleteStatus("idle");
     setTimeout(() => {
       setSelectedPlan(null);
       setForm(emptyForm);
     }, 300);
+  };
+
+  const handleOpenAssignees = (plan: Subscription) => {
+    setSelectedPlan(plan);
+    setIsViewingAssignees(true);
+    setDrawerOpen(true);
   };
 
   const handleOpenAddPlan = () => {
@@ -461,9 +471,20 @@ export default function ManageSubscriptionPlans() {
                         </div>
                       </TableCell>
                       <TableCell className="py-2 px-3 md:px-6">
-                        <div className="text-[14px] text-muted-foreground">
-                          {plan.assigned_users_count || 0}
-                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenAssignees(plan);
+                          }}
+                          className="h-8 gap-2 px-2 text-muted-foreground hover:text-foreground hover:bg-accent/50 -ml-2 font-normal"
+                        >
+                          <Users className="h-4 w-4" />
+                          <span className="text-[14px]">
+                            {plan.assigned_users_count || 0}
+                          </span>
+                        </Button>
                       </TableCell>
                       <TableCell className="py-2 px-3 md:px-6 text-center">
                         <div className="flex items-center justify-center gap-1">
@@ -481,7 +502,8 @@ export default function ManageSubscriptionPlans() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 handleViewDetails(plan);
                                 setTimeout(() => setIsEditing(true), 100);
                               }}
@@ -490,6 +512,7 @@ export default function ManageSubscriptionPlans() {
                               <Pencil className="h-4 w-4" />
                             </Button>
                           </motion.div>
+
                         </div>
                       </TableCell>
                     </TableRow>
@@ -568,38 +591,59 @@ export default function ManageSubscriptionPlans() {
 
       {/* Drawer */}
       <Sheet open={drawerOpen} onOpenChange={handleCloseDrawer}>
-        <SheetContent className="sm:max-w-[420px] p-0 flex flex-col">
+        <SheetContent className="sm:max-w-[500px] p-0 flex flex-col">
           <SheetTitle className="sr-only">
-            {isAddingPlan ? "Create Plan" : isEditing ? "Edit Plan" : "Plan Details"}
+            {isAddingPlan ? "Create Plan" : isEditing ? "Edit Plan" : isViewingAssignees ? "Plan Assignees" : "Plan Details"}
           </SheetTitle>
           <SheetDescription className="sr-only">
             {isAddingPlan
               ? "Create a new subscription plan"
               : isEditing
                 ? "Edit subscription plan details"
-                : "View subscription plan details"}
+                : isViewingAssignees
+                  ? "View users assigned to this plan"
+                  : "View subscription plan details"}
           </SheetDescription>
 
           <div className="flex flex-col h-full overflow-y-auto">
             {/* Header */}
             <div className="px-6 pt-8 pb-4 border-b border-border/20">
-              <h2 className="text-xl font-semibold">
-                {isAddingPlan
-                  ? "Create Plan"
-                  : isEditing
-                    ? "Edit Plan"
-                    : form.name || "Plan Details"}
-              </h2>
-              {!isAddingPlan && selectedPlan && (
-                <p className="text-sm text-muted-foreground mt-1">
-                  {form.description}
-                </p>
-              )}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold">
+                    {isAddingPlan
+                      ? "Create Plan"
+                      : isEditing
+                        ? "Edit Plan"
+                        : isViewingAssignees
+                          ? "Assignees"
+                          : form.name || "Plan Details"}
+                  </h2>
+                  {!isAddingPlan && selectedPlan && !isViewingAssignees && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {form.description}
+                    </p>
+                  )}
+                  {isViewingAssignees && selectedPlan && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {selectedPlan.name}
+                    </p>
+                  )}
+                </div>
+                {isViewingAssignees && (
+                  <div className="flex h-8 items-center gap-2 rounded-lg bg-muted/50 px-2 text-xs font-medium text-muted-foreground">
+                    <Users className="h-3.5 w-3.5" />
+                    {selectedPlan?.assigned_users_count || 0}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto px-6 py-6">
-              {isEditing || isAddingPlan ? (
+              {isViewingAssignees && selectedPlan ? (
+                <AssigneesList subscriptionId={selectedPlan.id} />
+              ) : isEditing || isAddingPlan ? (
                 // Edit/Create Mode
                 <div className="space-y-5">
                   <div className="space-y-2">
@@ -765,7 +809,15 @@ export default function ManageSubscriptionPlans() {
 
             {/* Footer Actions */}
             <div className="border-t border-border/20 px-6 py-4">
-              {isEditing || isAddingPlan ? (
+              {isViewingAssignees ? (
+                <Button
+                  variant="outline"
+                  className="w-full rounded-xl"
+                  onClick={handleCloseDrawer}
+                >
+                  Close
+                </Button>
+              ) : isEditing || isAddingPlan ? (
                 <div className="flex gap-3">
                   <Button
                     variant="outline"
