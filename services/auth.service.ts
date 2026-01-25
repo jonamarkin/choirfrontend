@@ -10,7 +10,8 @@ export const authService = {
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     const response = await apiClient.post<AuthResponse>(
       "/auth/login",
-      credentials
+      credentials,
+      { skipAuth: true }
     );
 
     // Handle session persistence here or in the calling component
@@ -26,7 +27,8 @@ export const authService = {
     // dj-rest-auth registration endpoint
     const response = await apiClient.post<AuthResponse>(
       "/auth/register/",
-      data
+      data,
+      { skipAuth: true }
     );
 
     if (response.access && typeof window !== "undefined") {

@@ -5,7 +5,8 @@ type RequestMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
 interface FetchOptions extends RequestInit {
   headers?: Record<string, string>;
-  params?: Record<string, string>;
+  params?: Record<string, string | number | boolean | undefined | null>;
+  skipAuth?: boolean;
 }
 
 class ApiClient {
@@ -15,12 +16,18 @@ class ApiClient {
     data?: unknown,
     options: FetchOptions = {}
   ): Promise<T> {
-    const { headers = {}, params, ...customConfig } = options;
+    const { headers = {}, params, skipAuth, ...customConfig } = options;
 
     // Handle Query Parameters
     let url = `${API_BASE_URL}${endpoint}`;
     if (params) {
-      const searchParams = new URLSearchParams(params);
+      const cleanParams: Record<string, string> = {};
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          cleanParams[key] = String(value);
+        }
+      });
+      const searchParams = new URLSearchParams(cleanParams);
       url += `?${searchParams.toString()}`;
     }
 
@@ -36,7 +43,7 @@ class ApiClient {
 
     // Attach Token if available (Client-side example)
     // For Server Components, you would pass the token via headers or cookies
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && !skipAuth) {
       const token = localStorage.getItem("access_token");
       if (token && config.headers) {
         (config.headers as Record<string, string>)[
