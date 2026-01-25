@@ -9,24 +9,32 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <html lang="en" suppressHydrationWarning>
-      <body>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="light"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <AuthProvider>
-            <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}>
-              <TooltipProvider delayDuration={120}>
-                {children}
-              </TooltipProvider>
-            </GoogleOAuthProvider>
-          </AuthProvider>
-        </ThemeProvider>
-      </body>
-    </html>
-  );
+    const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+
+    return (
+        <html lang="en" suppressHydrationWarning>
+            <body>
+                <ThemeProvider
+                    attribute="class"
+                    defaultTheme="light"
+                    enableSystem
+                    disableTransitionOnChange
+                >
+                    <AuthProvider>
+                        {googleClientId ? (
+                            <GoogleOAuthProvider clientId={googleClientId}>
+                                <TooltipProvider delayDuration={120}>
+                                    {children}
+                                </TooltipProvider>
+                            </GoogleOAuthProvider>
+                        ) : (
+                            <TooltipProvider delayDuration={120}>
+                                {children}
+                            </TooltipProvider>
+                        )}
+                    </AuthProvider>
+                </ThemeProvider>
+            </body>
+        </html>
+    );
 }

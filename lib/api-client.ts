@@ -59,9 +59,55 @@ class ApiClient {
     const response = await fetch(url, config);
 
     if (!response.ok) {
-      // You can parse specific error messages from your API here
+      if (response.status === 401 && !options.skipAuth && typeof window !== "undefined") {
+        const refresh = localStorage.getItem("refresh_token");
+        if (refresh) {
+          try {
+            // Attempt to refresh the token
+            const refreshResponse = await fetch(`${API_BASE_URL}/auth/token/refresh`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ refresh }),
+            });
+
+            if (refreshResponse.ok) {
+              const data = await refreshResponse.json();
+              localStorage.setItem("access_token", data.access);
+              if (data.refresh) {
+                localStorage.setItem("refresh_token", data.refresh);
+              }
+
+              // Retry the original request with the new token
+              const newConfig = { ...config };
+              if (newConfig.headers) {
+                (newConfig.headers as Record<string, string>)[
+                  "Authorization"
+                ] = `Bearer ${data.access}`;
+              }
+              const retryResponse = await fetch(url, newConfig);
+              if (retryResponse.ok) {
+                if (retryResponse.status === 204) return {} as T;
+                return retryResponse.json();
+              }
+              // If retry fails, continue to normal error handling
+            }
+          } catch (refreshError) {
+            console.error("Token refresh failed:", refreshError);
+          }
+        }
+        
+        // If we get here, refresh failed or was not possible
+        // Clear tokens and redirect to login if we are in the browser
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
+        localStorage.removeItem("user");
+        if (window.location.pathname !== "/login") {
+            window.location.href = "/login";
+        }
+      }
+
+      // Handle django-style error responses
       const errorData = await response.json().catch(() => ({}));
-      // Handle Django DRF 'detail', 'non_field_errors', or standard 'message'
       const errorMessage =
         errorData.detail ||
         errorData.error ||

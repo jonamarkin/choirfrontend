@@ -15,17 +15,44 @@ export const authService = {
       { skipAuth: true }
     );
 
-    // Handle session persistence here or in the calling component
     if (response.access && typeof window !== "undefined") {
-      localStorage.setItem("access_token", response.access);
-      localStorage.setItem("refresh_token", response.refresh);
-      // Store user details for simple access checks
-      if (response.user) {
-        localStorage.setItem("user", JSON.stringify(response.user));
-      }
+      this.setTokens(response.access, response.refresh, response.user);
     }
 
     return response;
+  },
+
+  setTokens(access: string, refresh: string, user?: User) {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("access_token", access);
+      localStorage.setItem("refresh_token", refresh);
+      if (user) {
+        localStorage.setItem("user", JSON.stringify(user));
+      }
+    }
+  },
+
+  async refreshToken(): Promise<string> {
+    const refresh = localStorage.getItem("refresh_token");
+    if (!refresh) {
+      throw new Error("No refresh token available");
+    }
+
+    const response = await apiClient.post<{ access: string; refresh: string }>(
+      "/auth/token/refresh",
+      { refresh },
+      { skipAuth: true }
+    );
+
+    if (response.access && typeof window !== "undefined") {
+      localStorage.setItem("access_token", response.access);
+      // Backend might rotate refresh token too
+      if (response.refresh) {
+        localStorage.setItem("refresh_token", response.refresh);
+      }
+    }
+
+    return response.access;
   },
 
   async register(data: RegisterCredentials): Promise<AuthResponse> {
@@ -36,11 +63,7 @@ export const authService = {
     );
 
     if (response.access && typeof window !== "undefined") {
-      localStorage.setItem("access_token", response.access);
-      localStorage.setItem("refresh_token", response.refresh);
-      if (response.user) {
-        localStorage.setItem("user", JSON.stringify(response.user));
-      }
+      this.setTokens(response.access, response.refresh, response.user);
     }
 
     return response;
@@ -56,12 +79,7 @@ export const authService = {
     );
 
     if (response.access && typeof window !== "undefined") {
-      localStorage.setItem("access_token", response.access);
-      localStorage.setItem("refresh_token", response.refresh);
-      // Store user details for simple access checks
-      if (response.user) {
-        localStorage.setItem("user", JSON.stringify(response.user));
-      }
+      this.setTokens(response.access, response.refresh, response.user);
     }
 
     return response;
