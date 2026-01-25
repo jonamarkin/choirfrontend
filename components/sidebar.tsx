@@ -19,6 +19,8 @@ import {
   User,
 } from "lucide-react";
 
+import { useAuth } from "@/components/providers/auth-provider";
+
 import { cn } from "@/components/ui/utils";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -193,6 +195,11 @@ export function Sidebar({
   const pathname = usePathname();
   const router = useRouter();
   const [expanded, setExpanded] = React.useState<string | null>(null);
+  const { logout, user } = useAuth();
+
+  React.useEffect(() => {
+    // No longer need to manually parse local storage since we have useAuth
+  }, []);
 
   const navigate = (href: string) => {
     router.push(href);
@@ -213,9 +220,11 @@ export function Sidebar({
         </div>
 
         <div className="flex-1">
-          <div className="text-[17px] font-semibold">VocalEssence</div>
+          <div className="text-[17px] font-semibold truncate max-w-[160px]">
+            {user ? `${user.first_name} ${user.last_name}` : "VocalEssence"}
+          </div>
           <div className="mt-1 inline-flex rounded-full bg-[#5A1E6E]/10 px-2.5 py-0.5 text-[11px] font-medium text-[#5A1E6E]">
-            Admin
+            {user?.role ? user.role.replace("_", " ").toUpperCase() : "..."}
           </div>
         </div>
 
@@ -228,8 +237,66 @@ export function Sidebar({
 
       {/* Navigation */}
       <div className="grid gap-1">
-        {navItems.map((item) =>
-          item.subItems ? (
+        {navItems.map((item) => {
+          // Permission Logic
+          let hasPermission = false;
+
+          if (!user) return null;
+
+          // If not active, treat as pending
+          const isUserPending = user.is_active === false;
+
+          if (isUserPending) {
+            // Pending users only see specific items
+            const allowed = ["Home", "Repertoire", "My Profile", "Sign out"]; // Added Sign out just in case it appears here
+            if (allowed.includes(item.label)) hasPermission = true;
+          } else if (user.role) {
+            // Role-based permissions
+            const permissions: Record<string, string[]> = {
+              member: ["Home", "Programs", "Repertoire", "My Profile"],
+              attendance_officer: [
+                "Home",
+                "Attendance",
+                "Members",
+                "Programs",
+                "Repertoire",
+                "My Profile",
+              ],
+              finance_admin: [
+                "Home",
+                "Finance",
+                "Subscriptions",
+                "Members",
+                "My Profile",
+              ],
+              treasurer: [
+                "Home",
+                "Finance",
+                "Subscriptions",
+                "Members",
+                "My Profile",
+              ],
+              // Admins get everything
+              admin: ["*"],
+              super_admin: ["*"],
+              system_admin: ["*"],
+            };
+
+            const allowedItems = permissions[user.role] || [];
+
+            if (allowedItems.includes("*")) {
+              hasPermission = true;
+            } else {
+              if (allowedItems.includes(item.label)) hasPermission = true;
+            }
+          } else {
+            // Fallback if no role found but not pending (show minimal safe items)
+            if (item.label === "Home") hasPermission = true;
+          }
+
+          if (!hasPermission) return null;
+
+          return item.subItems ? (
             <NavRow
               key={item.label}
               label={item.label}
@@ -251,8 +318,8 @@ export function Sidebar({
               active={pathname === item.href}
               onClick={() => navigate(item.href)}
             />
-          )
-        )}
+          );
+        })}
       </div>
 
       {/* Footer */}
@@ -265,7 +332,13 @@ export function Sidebar({
               label={item.label}
               icon={item.icon}
               active={pathname === item.href}
-              onClick={() => navigate(item.href)}
+              onClick={() => {
+                if (item.label === "Sign out") {
+                  logout();
+                } else {
+                  navigate(item.href);
+                }
+              }}
             />
           ))}
         </div>

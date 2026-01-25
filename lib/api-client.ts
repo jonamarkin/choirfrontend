@@ -91,6 +91,9 @@ class ApiClient {
   delete<T>(endpoint: string, options?: FetchOptions) {
     return this.request<T>(endpoint, "DELETE", undefined, options);
   }
+  patch<T>(endpoint: string, data: unknown, options?: FetchOptions) {
+    return this.request<T>(endpoint, "PATCH", data, options);
+  }
 }
 
 export const apiClient = new ApiClient();
