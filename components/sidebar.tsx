@@ -33,7 +33,7 @@ const navItems = [
   { href: "/home", label: "Home", icon: Home },
   { href: "/members", label: "Members", icon: Users },
   { href: "/subscriptions", label: "Subscriptions", icon: CreditCard },
-  { href: "/programs", label: "Programs", icon: Calendar },
+  { href: "/events", label: "Events", icon: Calendar },
   { href: "/attendance", label: "Attendance", icon: CalendarDays },
   { href: "/finance", label: "Finance", icon: Wallet },
   { href: "/repertoire", label: "Repertoire", icon: Music },
@@ -253,12 +253,12 @@ export function Sidebar({
           } else if (user.role) {
             // Role-based permissions
             const permissions: Record<string, string[]> = {
-              member: ["Home", "Programs", "Repertoire", "My Profile"],
+              member: ["Home", "Events", "Repertoire", "My Profile"],
               attendance_officer: [
                 "Home",
                 "Attendance",
                 "Members",
-                "Programs",
+                "Events",
                 "Repertoire",
                 "My Profile",
               ],

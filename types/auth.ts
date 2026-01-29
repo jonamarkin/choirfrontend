@@ -7,6 +7,17 @@ export type Gender = "male" | "female" | "other";
 // Employment status options
 export type EmploymentStatus = "employed" | "self_employed" | "student" | "unemployed" | "retired";
 
+// Attendance stats returned from /auth/me
+export interface AttendanceStats {
+  total_mandatory_events: number;
+  events_attended: number;
+  present: number;
+  late: number;
+  excused: number;
+  absent: number;
+  attendance_percentage: number;
+}
+
 export interface User {
   id: string;
   email: string;
@@ -31,6 +42,7 @@ export interface User {
   is_active: boolean;
   filled_form?: boolean;
   subscriptions?: UserSubscriptionSummary[];
+  attendance_stats?: AttendanceStats | null;
   created_at?: string;
   last_login_at?: string;
 
