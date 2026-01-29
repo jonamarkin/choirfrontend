@@ -14,7 +14,7 @@ import {
   ArrowLeft,
   CalendarCheck,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 
 import { cn } from "@/components/ui/utils";
 import { Button } from "@/components/ui/button";
@@ -55,16 +55,14 @@ function EventStatusBadge({ status }: { status: EventStatus }) {
   );
 }
 
-export default function EventDetailsPage({
-  params,
-}: {
-  params: { slug: string };
-}) {
+export default function EventDetailsPage() {
   const router = useRouter();
+  const params = useParams();
+  const slug = params.slug as string;
   const { user } = useAuth();
-  const { event, isLoading, mutate, error } = useEvent(params.slug);
+  const { event, isLoading, mutate, error } = useEvent(slug);
   
-  const { attendance: myAttendanceList, isLoading: attendanceLoading } = useEventAttendance(params.slug);
+  const { attendance: myAttendanceList, isLoading: attendanceLoading } = useEventAttendance(slug);
   
   const myAttendance = myAttendanceList.find((a) => a.user === user?.id);
 

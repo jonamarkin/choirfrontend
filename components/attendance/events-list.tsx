@@ -162,7 +162,13 @@ export function EventsList() {
                 cardBaseStyle,
                 "flex flex-col gap-4 hover:shadow-md transition-shadow cursor-pointer bg-card border border-border/50"
               )}
-              onClick={() => router.push(`/events/${event.slug}`)}
+              onClick={() => {
+                const identifier = event.slug || event.id;
+                console.log("Clicked event:", event);
+                console.log("Navigating to:", identifier);
+                if (!event.slug) console.warn("Missing slug for event, using ID");
+                router.push(`/events/${identifier}`);
+              }}
             >
               <div className="flex justify-between items-start">
                 <Badge variant="outline" className="capitalize">
