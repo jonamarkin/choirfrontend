@@ -1,3 +1,12 @@
+// Voice part options for choir members
+export type VoicePart = "soprano" | "alto" | "tenor" | "bass";
+
+// Gender options
+export type Gender = "male" | "female" | "other";
+
+// Employment status options
+export type EmploymentStatus = "employed" | "self_employed" | "student" | "unemployed" | "retired";
+
 export interface User {
   id: string;
   email: string;
@@ -5,13 +14,13 @@ export interface User {
   first_name: string;
   last_name: string;
   role:
-  | "system_admin"
-  | "super_admin"
-  | "admin"
-  | "finance_admin"
-  | "attendance_officer"
-  | "treasurer"
-  | "member";
+    | "system_admin"
+    | "super_admin"
+    | "admin"
+    | "finance_admin"
+    | "attendance_officer"
+    | "treasurer"
+    | "member";
   organization: string | null;
   organization_name?: string;
   has_organization?: boolean;
@@ -20,9 +29,28 @@ export interface User {
   auth_method?: "email" | "google" | "github" | "microsoft";
   email_verified?: boolean;
   is_active: boolean;
+  filled_form?: boolean;
   subscriptions?: UserSubscriptionSummary[];
   created_at?: string;
   last_login_at?: string;
+
+  // Profile Details
+  member_part?: VoicePart;
+  gender?: Gender;
+  date_of_birth?: string; // YYYY-MM-DD format
+  denomination?: string;
+  address?: string;
+
+  // Employment Details
+  employment_status?: EmploymentStatus;
+  occupation?: string;
+  employer?: string;
+  join_date?: string; // YYYY-MM-DD format
+
+  // Emergency Contact
+  emergency_contact_name?: string;
+  emergency_contact_relationship?: string;
+  emergency_contact_phone?: string;
 }
 
 export interface UserSubscriptionSummary {
@@ -37,6 +65,24 @@ export interface ProfileUpdateRequest {
   last_name?: string;
   phone_number?: string;
   profile_picture?: string;
+
+  // Profile Details
+  member_part?: VoicePart;
+  gender?: Gender;
+  date_of_birth?: string; // YYYY-MM-DD format
+  denomination?: string;
+  address?: string;
+
+  // Employment Details
+  employment_status?: EmploymentStatus;
+  occupation?: string;
+  employer?: string;
+  join_date?: string; // YYYY-MM-DD format
+
+  // Emergency Contact
+  emergency_contact_name?: string;
+  emergency_contact_relationship?: string;
+  emergency_contact_phone?: string;
 }
 
 export interface ChangePasswordRequest {

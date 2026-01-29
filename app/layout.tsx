@@ -3,6 +3,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/components/providers/auth-provider";
 import { GoogleOAuthProvider } from "@react-oauth/google";
+import { Toaster } from "@/components/ui/sonner";
 
 export default function RootLayout({
   children,
@@ -33,6 +34,7 @@ export default function RootLayout({
                             </TooltipProvider>
                         )}
                     </AuthProvider>
+                    <Toaster richColors position="top-right" />
                 </ThemeProvider>
             </body>
         </html>
