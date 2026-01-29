@@ -104,7 +104,9 @@ export interface PaginatedResponse<T> {
 export interface PaymentInitiateRequest {
     user_subscription_id: string;
     amount?: string;
-    metadata?: string;
+    return_url?: string;
+    cancellation_url?: string;
+    metadata?: Record<string, unknown>;
 }
 
 /**

@@ -36,13 +36,28 @@ export const subscriptionService = {
      */
     async initiatePayment(
         userSubscriptionId: string,
-        amount?: number
+        amount?: number,
+        options?: {
+            returnUrl?: string;
+            cancellationUrl?: string;
+            metadata?: Record<string, unknown>;
+        }
     ): Promise<PaymentInitiateResponse> {
+        // Build return URLs based on current origin
+        const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+        
         const payload: PaymentInitiateRequest = {
             user_subscription_id: userSubscriptionId,
+            return_url: options?.returnUrl || `${baseUrl}/subscriptions/payment-success`,
+            cancellation_url: options?.cancellationUrl || `${baseUrl}/subscriptions`,
         };
+        
         if (amount !== undefined) {
             payload.amount = amount.toString();
+        }
+        
+        if (options?.metadata) {
+            payload.metadata = options.metadata;
         }
 
         // Debug: log the exact request being sent
