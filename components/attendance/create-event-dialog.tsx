@@ -64,6 +64,11 @@ export function CreateEventDialog({
   const [startTime, setStartTime] = React.useState("18:00");
   const [endTime, setEndTime] = React.useState("20:00");
 
+  // Recurring Event State
+  const [isRecurring, setIsRecurring] = React.useState(false);
+  const [frequency, setFrequency] = React.useState<"daily" | "weekly" | "biweekly">("weekly");
+  const [recurrenceCount, setRecurrenceCount] = React.useState(10);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!date) {
@@ -79,13 +84,23 @@ export function CreateEventDialog({
       const startDateTime = `${dateStr}T${startTime}:00`;
       const endDateTime = `${dateStr}T${endTime}:00`;
 
-      await eventsService.createEvent({
+      const eventPayload = {
         ...formData,
         start_datetime: startDateTime,
         end_datetime: endDateTime,
-      });
+      };
 
-      toast.success("Event created successfully");
+      if (isRecurring) {
+        await eventsService.createRecurringEvent({
+           base_event: eventPayload,
+           frequency,
+           count: recurrenceCount,
+        });
+        toast.success(`Successfully created ${recurrenceCount} events`);
+      } else {
+        await eventsService.createEvent(eventPayload);
+        toast.success("Event created successfully");
+      }
       setFormData({
         title: "",
         description: "",
@@ -167,7 +182,7 @@ export function CreateEventDialog({
 
           <div className="grid grid-cols-2 gap-4">
              <div className="space-y-2 flex flex-col">
-              <Label>Date</Label>
+              <Label>Date {isRecurring && "(Start Date)"}</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -191,10 +206,50 @@ export function CreateEventDialog({
                 </PopoverContent>
               </Popover>
             </div>
-            <div className="space-y-2">
-               {/* Spacer or duration if needed */}
+             <div className="space-y-2 flex flex-col justify-end pb-0.5">
+               <div className="flex items-center space-x-2">
+                 <Checkbox
+                    id="recurring"
+                    checked={isRecurring}
+                    onCheckedChange={(checked) => setIsRecurring(checked as boolean)}
+                 />
+                 <Label htmlFor="recurring" className="font-normal cursor-pointer">
+                   Recurring Event
+                 </Label>
+               </div>
             </div>
           </div>
+
+          {isRecurring && (
+            <div className="grid grid-cols-2 gap-4 p-3 bg-muted/30 rounded-md border border-border/50">
+               <div className="space-y-2">
+                  <Label>Frequency</Label>
+                  <Select
+                    value={frequency}
+                    onValueChange={(v) => setFrequency(v as "daily" | "weekly" | "biweekly")}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="daily">Daily</SelectItem>
+                      <SelectItem value="weekly">Weekly</SelectItem>
+                      <SelectItem value="biweekly">Bi-Weekly</SelectItem>
+                    </SelectContent>
+                  </Select>
+               </div>
+               <div className="space-y-2">
+                  <Label>Number of Events</Label>
+                  <Input
+                    type="number"
+                    min={2}
+                    max={52}
+                    value={recurrenceCount}
+                    onChange={(e) => setRecurrenceCount(parseInt(e.target.value) || 2)}
+                  />
+               </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -253,7 +308,7 @@ export function CreateEventDialog({
             </Button>
             <Button type="submit" disabled={loading} className="bg-primary">
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Create Event
+              {isRecurring ? `Create ${recurrenceCount} Events` : "Create Event"}
             </Button>
           </DialogFooter>
         </form>
