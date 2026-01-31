@@ -197,3 +197,13 @@ export interface EventFilters {
   end_date?: string;
   upcoming?: boolean;
 }
+
+/**
+ * Request to create a recurring series of events
+ */
+export interface RecurringEventRequest {
+  base_event: EventFormData;
+  frequency: "daily" | "weekly" | "biweekly";
+  count?: number;
+  until_date?: string;
+}

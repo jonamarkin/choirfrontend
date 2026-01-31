@@ -9,6 +9,7 @@ import {
   EventListItem,
   EventFormData,
   EventFilters,
+  RecurringEventRequest,
 } from "@/types/events";
 
 export const eventsService = {
@@ -64,5 +65,13 @@ export const eventsService = {
    */
   async deleteEvent(slug: string): Promise<void> {
     return apiClient.delete(`/events/${slug}`);
+  },
+
+  /**
+   * Create a recurring series of events
+   * Requires: super_admin, admin, or attendance_officer role
+   */
+  async createRecurringEvent(data: RecurringEventRequest): Promise<Event[]> {
+    return apiClient.post<Event[]>("/events/recurring/", data);
   },
 };

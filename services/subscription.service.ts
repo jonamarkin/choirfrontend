@@ -64,7 +64,7 @@ export const subscriptionService = {
         console.log("[initiatePayment] Sending payload:", JSON.stringify(payload, null, 2));
 
         return apiClient.post<PaymentInitiateResponse>(
-            "/subscriptions/payments/initiate",
+            "/subscriptions/payments/initiate/",
             payload
         );
     },
