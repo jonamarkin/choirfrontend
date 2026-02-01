@@ -21,7 +21,7 @@ export const attendanceService = {
    */
   async getEventAttendance(slug: string): Promise<EventAttendance[]> {
     return apiClient.get<EventAttendance[]>(
-      `/events/${slug}/attendance`
+      `/events/${slug}/attendance/`
     );
   },
 
@@ -31,7 +31,7 @@ export const attendanceService = {
    */
   async getEligibleMembers(slug: string): Promise<EligibleMembersResponse> {
     return apiClient.get<EligibleMembersResponse>(
-      `/events/${slug}/eligible_members`
+      `/events/${slug}/eligible_members/`
     );
   },
 
@@ -44,7 +44,7 @@ export const attendanceService = {
     data: MarkAttendanceRequest
   ): Promise<EventAttendance> {
     return apiClient.post<EventAttendance>(
-      `/events/${slug}/mark_attendance`,
+      `/events/${slug}/mark_attendance/`,
       data
     );
   },
@@ -58,7 +58,7 @@ export const attendanceService = {
     data: BulkMarkAttendanceRequest
   ): Promise<BulkMarkAttendanceResponse> {
     return apiClient.post<BulkMarkAttendanceResponse>(
-      `/events/${slug}/bulk_mark_attendance`,
+      `/events/${slug}/bulk_mark_attendance/`,
       data
     );
   },
@@ -68,7 +68,7 @@ export const attendanceService = {
    * Accessible by all authenticated users
    */
   async getMyAttendance(): Promise<MyAttendance[]> {
-    return apiClient.get<MyAttendance[]>("/attendance/my-attendance");
+    return apiClient.get<MyAttendance[]>("/attendance/my-attendance/");
   },
 
   /**
@@ -76,6 +76,6 @@ export const attendanceService = {
    * Accessible by all authenticated users
    */
   async getMyAttendanceStats(): Promise<AttendanceStats> {
-    return apiClient.get<AttendanceStats>("/attendance/my-attendance/stats");
+    return apiClient.get<AttendanceStats>("/attendance/my-attendance/stats/");
   },
 };

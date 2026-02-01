@@ -26,7 +26,7 @@ export const eventsService = {
     if (filters?.end_date) params.end_date = filters.end_date;
     if (filters?.upcoming !== undefined) params.upcoming = String(filters.upcoming);
 
-    const response = await apiClient.get<EventListItem[] | { results: EventListItem[] }>("/events", { params });
+    const response = await apiClient.get<EventListItem[] | { results: EventListItem[] }>("/events/", { params });
     
     if (Array.isArray(response)) {
         return response;
@@ -40,7 +40,7 @@ export const eventsService = {
    * Accessible by all authenticated users
    */
   async getEvent(slug: string): Promise<Event> {
-    return apiClient.get<Event>(`/events/${slug}`);
+    return apiClient.get<Event>(`/events/${slug}/`);
   },
 
   /**
@@ -48,7 +48,7 @@ export const eventsService = {
    * Requires: super_admin, admin, or attendance_officer role
    */
   async createEvent(data: EventFormData): Promise<Event> {
-    return apiClient.post<Event>("/events", data);
+    return apiClient.post<Event>("/events/", data);
   },
 
   /**
@@ -56,7 +56,7 @@ export const eventsService = {
    * Requires: super_admin, admin, or attendance_officer role
    */
   async updateEvent(slug: string, data: Partial<EventFormData>): Promise<Event> {
-    return apiClient.patch<Event>(`/events/${slug}`, data);
+    return apiClient.patch<Event>(`/events/${slug}/`, data);
   },
 
   /**
@@ -64,7 +64,7 @@ export const eventsService = {
    * Requires: super_admin, admin, or attendance_officer role
    */
   async deleteEvent(slug: string): Promise<void> {
-    return apiClient.delete(`/events/${slug}`);
+    return apiClient.delete(`/events/${slug}/`);
   },
 
   /**

@@ -1,0 +1,343 @@
+<!doctype html>
+<html
+  lang="en"
+  xmlns:v="urn:schemas-microsoft-com:vml"
+  xmlns:o="urn:schemas-microsoft-com:office:office"
+>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="x-apple-disable-message-reformatting" />
+    <title>{{ subject|default:"Notification from VocalEssence" }}</title>
+    <!--[if mso]>
+      <xml>
+        <o:OfficeDocumentSettings>
+          <o:PixelsPerInch>96</o:PixelsPerInch>
+        </o:OfficeDocumentSettings>
+      </xml>
+      <style>
+        table {
+          border-collapse: collapse;
+        }
+        td,
+        th,
+        div,
+        p,
+        a,
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6 {
+          font-family: "Georgia", serif;
+        }
+      </style>
+    <![endif]-->
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@600;700&display=swap");
+    </style>
+    <style>
+      /* Base Resets */
+      body {
+        margin: 0;
+        padding: 0;
+        word-spacing: normal;
+        background-color: #f4f4f5;
+      }
+      header,
+      footer,
+      nav,
+      section,
+      article {
+        display: block;
+      }
+
+      /* Typography - Application Theme */
+      /* Primary Brand Color: #5A1E6E (Regal Purple) */
+      /* Secondary Brand Color: #F2B705 (Gold) */
+      /* Background: #FFFFFF */
+      /* Text: #0a0a0b */
+
+      .heading {
+        font-family: "Playfair Display", Georgia, serif;
+        color: #5a1e6e;
+      }
+      .body-text {
+        font-family: "Inter", sans-serif;
+        color: #18181b; /* Zinc-900 */
+      }
+
+      /* Utilities */
+      .btn-primary {
+        background-color: #5a1e6e;
+        color: #ffffff !important;
+        border-radius: 8px;
+        text-decoration: none;
+        padding: 12px 28px;
+        display: inline-block;
+        font-weight: 600;
+        font-family: "Inter", sans-serif;
+        mso-padding-alt: 0;
+        text-underline-color: #5a1e6e;
+      }
+      .btn-primary:hover {
+        background-color: #461656; /* Darker shade */
+      }
+    </style>
+  </head>
+  <body
+    style="
+      background-color: #f4f4f5;
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+    "
+  >
+    <!-- Outer Wrapper -->
+    <table
+      role="presentation"
+      width="100%"
+      border="0"
+      cellpadding="0"
+      cellspacing="0"
+      style="background-color: #f4f4f5"
+    >
+      <tr>
+        <td align="center" style="padding: 40px 10px">
+          <!-- Email Container (600px) -->
+          <table
+            role="presentation"
+            width="100%"
+            border="0"
+            cellpadding="0"
+            cellspacing="0"
+            style="
+              max-width: 600px;
+              background-color: #ffffff;
+              border-radius: 12px;
+              overflow: hidden;
+              box-shadow:
+                0 4px 6px -1px rgba(0, 0, 0, 0.1),
+                0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            "
+          >
+            <!-- Header with Logo/Brand -->
+            <tr>
+              <td
+                style="
+                  padding: 32px 40px;
+                  background-color: #5a1e6e;
+                  text-align: center;
+                "
+              >
+                <!-- Logo Image Placeholder -->
+                <!-- <img src="https://your-domain.com/static/logo-white.png" alt="VocalEssence" width="150" style="display: block; margin: 0 auto; border: 0;"> -->
+
+                <!-- Text Fallback for Logo -->
+                <h1
+                  style="
+                    margin: 0;
+                    color: #ffffff;
+                    font-family: &quot;Playfair Display&quot;, Georgia, serif;
+                    font-size: 24px;
+                    font-weight: 700;
+                    letter-spacing: 0.5px;
+                  "
+                >
+                  VocalEssence Chorale
+                </h1>
+              </td>
+            </tr>
+
+            <!-- Main Content Area -->
+            <tr>
+              <td
+                style="padding: 40px 40px 30px 40px; background-color: #ffffff"
+              >
+                <!-- Greeting/Subject -->
+                <h2
+                  class="heading"
+                  style="
+                    margin-top: 0;
+                    margin-bottom: 20px;
+                    font-size: 22px;
+                    font-weight: 700;
+                    color: #18181b;
+                  "
+                >
+                  {{ title|default:"Notification" }}
+                </h2>
+
+                <!-- Body Text -->
+                <p
+                  class="body-text"
+                  style="
+                    margin: 0 0 16px 0;
+                    font-size: 16px;
+                    line-height: 1.6;
+                    color: #3f3f46;
+                  "
+                >
+                  Hello {{ user_name|default:"Member" }},
+                </p>
+                <p
+                  class="body-text"
+                  style="
+                    margin: 0 0 24px 0;
+                    font-size: 16px;
+                    line-height: 1.6;
+                    color: #3f3f46;
+                  "
+                >
+                  {{ message_body|default:"This is an automated notification
+                  regarding your account or schedule. Please review the details
+                  below." }}
+                </p>
+
+                <!-- Optional Info Box -->
+                {% if details %}
+                <table
+                  role="presentation"
+                  width="100%"
+                  border="0"
+                  cellpadding="0"
+                  cellspacing="0"
+                  style="
+                    background-color: #fafafa;
+                    border-radius: 8px;
+                    margin-bottom: 24px;
+                    border: 1px solid #e4e4e7;
+                  "
+                >
+                  <tr>
+                    <td style="padding: 20px">
+                      <p
+                        class="body-text"
+                        style="
+                          margin: 0;
+                          font-size: 14px;
+                          line-height: 1.6;
+                          color: #52525b;
+                        "
+                      >
+                        {{ details|safe }}
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+                {% endif %}
+
+                <!-- Call to Action -->
+                {% if action_url %}
+                <table
+                  role="presentation"
+                  width="100%"
+                  border="0"
+                  cellpadding="0"
+                  cellspacing="0"
+                >
+                  <tr>
+                    <td
+                      align="center"
+                      style="padding-top: 10px; padding-bottom: 10px"
+                    >
+                      <!--[if mso]>
+                        <v:roundrect
+                          xmlns:v="urn:schemas-microsoft-com:vml"
+                          xmlns:w="urn:schemas-microsoft-com:office:word"
+                          href="{{ action_url }}"
+                          style="
+                            height: 48px;
+                            v-text-anchor: middle;
+                            width: 200px;
+                          "
+                          arcsize="15%"
+                          strokecolor="#5A1E6E"
+                          fillcolor="#5A1E6E"
+                        >
+                          <w:anchorlock />
+                          <center
+                            style="
+                              color: #ffffff;
+                              font-family: sans-serif;
+                              font-size: 16px;
+                              font-weight: bold;
+                            "
+                          >
+                            {{ action_text|default:"View Details" }}
+                          </center>
+                        </v:roundrect>
+                      <![endif]-->
+                      <a
+                        href="{{ action_url }}"
+                        class="btn-primary"
+                        style="
+                          background-color: #5a1e6e;
+                          color: #ffffff;
+                          border-radius: 8px;
+                          text-decoration: none;
+                          padding: 12px 28px;
+                          display: inline-block;
+                          font-weight: 600;
+                          font-family: &quot;Inter&quot;, sans-serif;
+                          mso-hide: all;
+                        "
+                      >
+                        {{ action_text|default:"View Details" }}
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+                {% endif %}
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td
+                style="
+                  padding: 24px 40px;
+                  background-color: #f4f4f5;
+                  border-top: 1px solid #e4e4e7;
+                  text-align: center;
+                "
+              >
+                <p
+                  style="
+                    margin: 0 0 10px 0;
+                    font-family: &quot;Inter&quot;, sans-serif;
+                    font-size: 12px;
+                    line-height: 1.5;
+                    color: #71717a;
+                  "
+                >
+                  &copy; {{ current_year|default:"2026" }} VocalEssence Chorale.
+                  All Highs Reserved.
+                </p>
+                <p
+                  style="
+                    margin: 0;
+                    font-family: &quot;Inter&quot;, sans-serif;
+                    font-size: 12px;
+                    line-height: 1.5;
+                    color: #a1a1aa;
+                  "
+                >
+                  You are receiving this email because you are a registered
+                  member.
+                  <br />
+                  <a
+                    href="{{ preferences_url }}"
+                    style="color: #71717a; text-decoration: underline"
+                    >Manage Preferences</a
+                  >
+                </p>
+              </td>
+            </tr>
+          </table>
+          <!-- End Email Container -->
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
