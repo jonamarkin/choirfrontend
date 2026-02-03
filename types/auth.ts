@@ -104,9 +104,31 @@ export interface ChangePasswordRequest {
 }
 
 export interface AuthResponse {
-  access: string;
-  refresh: string;
+  access?: string;
+  refresh?: string;
   user: User;
+  detail?: string;
+  code?: string;
+}
+
+export interface VerifyEmailRequest {
+  email: string;
+  otp: string;
+}
+
+export interface ResendOtpRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  email: string;
+}
+
+export interface ConfirmResetPasswordRequest {
+  email: string;
+  otp: string;
+  new_password: string;
+  new_password_confirm: string;
 }
 
 export interface LoginCredentials {

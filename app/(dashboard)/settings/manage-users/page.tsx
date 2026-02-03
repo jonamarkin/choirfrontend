@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from "motion/react";
 import {
   Eye,
   Pencil,
-  UserPlus,
   Mail,
   Phone,
   Calendar,
@@ -19,7 +18,11 @@ import {
   Search,
   Shield,
   Clock,
+  CheckCircle,
+  AlertCircle,
+  Music,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { cn } from "@/components/ui/utils";
 import { Button } from "@/components/ui/button";
@@ -36,9 +39,7 @@ import {
   Sheet,
   SheetContent,
   SheetDescription,
-  SheetHeader,
   SheetTitle,
-  SheetClose,
 } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -52,402 +53,277 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { PremiumStatCard } from "@/components/premium-stat-card";
-import { PremiumBadge } from "@/components/premium-badge";
+import { tableContainerStyle } from "@/utils/premium-styles";
+
+import { useAdminUsers } from "@/hooks/useAdminUsers";
+import { adminUserService } from "@/services/admin-user.service";
 import {
-  tableContainerStyle,
-  tableHeaderRowStyle,
-  tableHeaderCellStyle,
-  paginationActiveStyle,
-  paginationInactiveStyle,
-  buttonStyles,
-  gradientTextStyles,
-} from "@/utils/premium-styles";
+  AdminUser,
+  UserRole,
+  MemberPart,
+  ROLE_DISPLAY_NAMES,
+  MEMBER_PART_DISPLAY_NAMES,
+} from "@/types/admin";
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  role: "Super Admin" | "Administrator" | "Financial Controller" | "Treasurer" | "Member";
-  status: "Active" | "Inactive" | "Pending";
-  dateAdded: string;
-  lastLogin?: string;
-}
-
-const mockUsers: User[] = [
-  {
-    id: "1",
-    name: "Sarah Johnson",
-    email: "sarah.j@vocalessence.org",
-    phone: "+1 (555) 123-4567",
-    role: "Super Admin",
-    status: "Active",
-    dateAdded: "2020-01-15",
-    lastLogin: "2024-12-27",
-  },
-  {
-    id: "2",
-    name: "Michael Chen",
-    email: "michael.c@vocalessence.org",
-    phone: "+1 (555) 234-5678",
-    role: "Administrator",
-    status: "Active",
-    dateAdded: "2020-03-22",
-    lastLogin: "2024-12-26",
-  },
-  {
-    id: "3",
-    name: "Emily Rodriguez",
-    email: "emily.r@vocalessence.org",
-    phone: "+1 (555) 345-6789",
-    role: "Financial Controller",
-    status: "Active",
-    dateAdded: "2021-09-10",
-    lastLogin: "2024-12-25",
-  },
-  {
-    id: "4",
-    name: "David Thompson",
-    email: "david.t@vocalessence.org",
-    phone: "+1 (555) 456-7890",
-    role: "Treasurer",
-    status: "Active",
-    dateAdded: "2019-11-05",
-    lastLogin: "2024-12-24",
-  },
-  {
-    id: "5",
-    name: "Jessica Martinez",
-    email: "jessica.m@vocalessence.org",
-    phone: "+1 (555) 567-8901",
-    role: "Financial Controller",
-    status: "Active",
-    dateAdded: "2022-01-20",
-    lastLogin: "2024-12-23",
-  },
-  {
-    id: "6",
-    name: "Robert Wilson",
-    email: "robert.w@vocalessence.org",
-    phone: "+1 (555) 678-9012",
-    role: "Treasurer",
-    status: "Inactive",
-    dateAdded: "2021-06-12",
-    lastLogin: "2024-10-15",
-  },
-  {
-    id: "7",
-    name: "Jennifer Adams",
-    email: "jennifer.adams@gmail.com",
-    phone: "+1 (555) 789-1234",
-    role: "Member",
-    status: "Pending",
-    dateAdded: "2024-12-27",
-  },
-  {
-    id: "8",
-    name: "Thomas Brown",
-    email: "thomas.brown@yahoo.com",
-    phone: "+1 (555) 890-2345",
-    role: "Member",
-    status: "Pending",
-    dateAdded: "2024-12-26",
-  },
+// Available roles for selection
+const USER_ROLES: UserRole[] = [
+  "super_admin",
+  "admin",
+  "finance_admin",
+  "attendance_officer",
+  "treasurer",
+  "part_leader",
+  "member",
 ];
 
-const userRoles = ["Super Admin", "Administrator", "Financial Controller", "Treasurer", "Member"] as const;
+const MEMBER_PARTS: MemberPart[] = [
+  "soprano",
+  "alto",
+  "tenor",
+  "bass",
+  "instrumentalist",
+  "directorate",
+];
 
-const ITEMS_PER_PAGE = 8;
+// Helper to derive display status
+function getUserStatus(user: AdminUser): "Active" | "Inactive" | "Pending" {
+  if (!user.is_approved) return "Pending";
+  if (!user.is_active) return "Inactive";
+  return "Active";
+}
 
-// Helper function to get role colors
-const getRoleColor = (role: User["role"]) => {
+// Get role badge color
+const getRoleColor = (role: UserRole) => {
   switch (role) {
-    case "Super Admin":
+    case "super_admin":
       return "bg-gradient-to-br from-[#5A1E6E]/15 to-[#5A1E6E]/25 text-[#5A1E6E] dark:text-[#9F7FB8] shadow-sm shadow-[#5A1E6E]/10";
-    case "Administrator":
+    case "admin":
       return "bg-gradient-to-br from-[#F36A21]/15 to-[#F36A21]/25 text-[#F36A21] dark:text-[#FF8F5E] shadow-sm shadow-[#F36A21]/10";
-    case "Financial Controller":
+    case "finance_admin":
+    case "treasurer":
       return "bg-gradient-to-br from-[#3D123F]/15 to-[#3D123F]/25 text-[#3D123F] dark:text-[#8B6B8E] shadow-sm shadow-[#3D123F]/10";
-    case "Treasurer":
-      return "bg-gradient-to-br from-gray-500/15 to-gray-600/25 text-gray-700 dark:text-gray-300 shadow-sm shadow-gray-500/10";
-    case "Member":
-      return "bg-gradient-to-br from-gray-500/15 to-gray-600/25 text-gray-700 dark:text-gray-300 shadow-sm shadow-gray-500/10";
     default:
       return "bg-gradient-to-br from-gray-500/15 to-gray-600/25 text-gray-700 dark:text-gray-300 shadow-sm shadow-gray-500/10";
   }
 };
 
 export default function ManageUsers() {
-  const [users, setUsers] = React.useState<User[]>(mockUsers);
-  const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
-  const [isEditing, setIsEditing] = React.useState(false);
-  const [editedUser, setEditedUser] = React.useState<User | null>(null);
-  const [currentPage, setCurrentPage] = React.useState(1);
-  const [saveStatus, setSaveStatus] = React.useState<"idle" | "saving" | "success">("idle");
-  const [itemsPerPage, setItemsPerPage] = React.useState(10);
-
-  // Search and filter states
+  // Filters
   const [searchQuery, setSearchQuery] = React.useState("");
   const [filterRole, setFilterRole] = React.useState<string>("all");
   const [filterStatus, setFilterStatus] = React.useState<string>("all");
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const [itemsPerPage, setItemsPerPage] = React.useState(10);
 
-  // Add user state
-  const [isAddingUser, setIsAddingUser] = React.useState(false);
-  const [newUser, setNewUser] = React.useState<User>({
-    id: "",
-    name: "",
-    email: "",
-    phone: "",
-    role: "Treasurer",
-    status: "Active",
-    dateAdded: new Date().toISOString().split("T")[0],
-    lastLogin: "",
-  });
-
-  // Ref for the scrollable drawer content
-  const drawerContentRef = React.useRef<HTMLDivElement>(null);
-  const addUserContentRef = React.useRef<HTMLDivElement>(null);
-
-  // Reset scroll position when drawer opens or mode changes
-  React.useEffect(() => {
-    if (selectedUser && drawerContentRef.current) {
-      const timeoutId = setTimeout(() => {
-        if (drawerContentRef.current) {
-          drawerContentRef.current.scrollTop = 0;
-        }
-      }, 0);
-
-      return () => clearTimeout(timeoutId);
+  // Build API filters
+  const apiFilters = React.useMemo(() => {
+    const filters: Record<string, unknown> = { page: currentPage };
+    if (searchQuery) filters.search = searchQuery;
+    if (filterRole !== "all") filters.role = filterRole;
+    if (filterStatus === "Pending") filters.is_approved = false;
+    else if (filterStatus === "Active") {
+      filters.is_approved = true;
+      filters.is_active = true;
+    } else if (filterStatus === "Inactive") {
+      filters.is_approved = true;
+      filters.is_active = false;
     }
-  }, [selectedUser?.id, isEditing]);
+    return filters;
+  }, [searchQuery, filterRole, filterStatus, currentPage]);
 
-  // Filter and search users
-  const filteredUsers = React.useMemo(() => {
-    return users.filter((user) => {
-      // Search filter
-      const searchLower = searchQuery.toLowerCase();
-      const matchesSearch =
-        searchQuery === "" ||
-        user.name.toLowerCase().includes(searchLower) ||
-        user.email.toLowerCase().includes(searchLower) ||
-        user.phone?.toLowerCase().includes(searchLower) ||
-        user.role.toLowerCase().includes(searchLower);
+  // Fetch users
+  const { users, totalCount, isLoading, error, mutate } = useAdminUsers(apiFilters);
 
-      // Role filter
-      const matchesRole = filterRole === "all" || user.role === filterRole;
+  // Sheet state
+  const [selectedUser, setSelectedUser] = React.useState<AdminUser | null>(null);
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [editForm, setEditForm] = React.useState<Partial<AdminUser>>({});
+  const [saveStatus, setSaveStatus] = React.useState<"idle" | "saving" | "success">("idle");
+  const [actionLoading, setActionLoading] = React.useState<string | null>(null);
 
-      // Status filter
-      const matchesStatus =
-        filterStatus === "all" || user.status === filterStatus;
+  // Pagination
+  const totalPages = Math.ceil(totalCount / itemsPerPage);
 
-      return matchesSearch && matchesRole && matchesStatus;
-    });
-  }, [users, searchQuery, filterRole, filterStatus]);
-
-  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentUsers = filteredUsers.slice(startIndex, endIndex);
-
-  // Reset to page 1 when items per page changes or filters change
+  // Reset page when filters change
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [itemsPerPage, searchQuery, filterRole, filterStatus]);
+  }, [searchQuery, filterRole, filterStatus, itemsPerPage]);
 
-  const handleClearFilters = () => {
-    setSearchQuery("");
-    setFilterRole("all");
-    setFilterStatus("all");
-  };
-
-  const hasActiveFilters =
-    searchQuery !== "" ||
-    filterRole !== "all" ||
-    filterStatus !== "all";
-
-  const handleViewDetails = (user: User) => {
+  // Handlers
+  const handleViewDetails = (user: AdminUser) => {
     setSelectedUser(user);
-    setEditedUser({ ...user });
+    setEditForm({
+      first_name: user.first_name,
+      last_name: user.last_name,
+      phone_number: user.phone_number,
+      role: user.role,
+      member_part: user.member_part,
+      is_active: user.is_active,
+    });
     setIsEditing(false);
   };
 
   const handleCloseSheet = () => {
     setSelectedUser(null);
-    setEditedUser(null);
+    setEditForm({});
     setIsEditing(false);
     setSaveStatus("idle");
   };
 
   const handleEditClick = () => {
     setIsEditing(true);
-    if (selectedUser) {
-      setEditedUser({ ...selectedUser });
-    }
   };
 
   const handleCancelEdit = () => {
-    setIsEditing(false);
     if (selectedUser) {
-      setEditedUser({ ...selectedUser });
+      setEditForm({
+        first_name: selectedUser.first_name,
+        last_name: selectedUser.last_name,
+        phone_number: selectedUser.phone_number,
+        role: selectedUser.role,
+        member_part: selectedUser.member_part,
+        is_active: selectedUser.is_active,
+      });
     }
+    setIsEditing(false);
   };
 
   const handleSaveEdit = async () => {
-    if (!editedUser) return;
+    if (!selectedUser) return;
 
     setSaveStatus("saving");
+    try {
+      const updatedUser = await adminUserService.updateUser(selectedUser.id, editForm);
+      setSelectedUser(updatedUser);
+      setSaveStatus("success");
+      mutate();
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    // Update the user in the list
-    setUsers((prev) =>
-      prev.map((user) => (user.id === editedUser.id ? editedUser : user))
-    );
-    setSelectedUser(editedUser);
-    setSaveStatus("success");
-
-    // Wait a bit to show success, then exit edit mode
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    setIsEditing(false);
-    setSaveStatus("idle");
-  };
-
-  const handleOpenAddUser = () => {
-    setIsAddingUser(true);
-    setNewUser({
-      id: "",
-      name: "",
-      email: "",
-      phone: "",
-      role: "Treasurer",
-      status: "Active",
-      dateAdded: new Date().toISOString().split("T")[0],
-      lastLogin: "",
-    });
-  };
-
-  const handleCloseAddUser = () => {
-    setIsAddingUser(false);
-    setNewUser({
-      id: "",
-      name: "",
-      email: "",
-      phone: "",
-      role: "Treasurer",
-      status: "Active",
-      dateAdded: new Date().toISOString().split("T")[0],
-      lastLogin: "",
-    });
-    setSaveStatus("idle");
-  };
-
-  const handleAddUser = async () => {
-    if (newUser.name.trim() === "" || newUser.email.trim() === "") {
-      return;
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      setIsEditing(false);
+      setSaveStatus("idle");
+      toast.success("User updated successfully");
+    } catch (err) {
+      setSaveStatus("idle");
+      const message = err instanceof Error ? err.message : "Failed to update user";
+      toast.error(message);
     }
-
-    setSaveStatus("saving");
-
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    // Generate new ID
-    const newId = (Math.max(...users.map((u) => parseInt(u.id))) + 1).toString();
-
-    // Add user to list
-    const userToAdd = { ...newUser, id: newId };
-    setUsers((prev) => [...prev, userToAdd]);
-
-    setSaveStatus("success");
-
-    // Wait a bit to show success, then close
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    handleCloseAddUser();
   };
 
-  const handlePreviousPage = () => {
-    setCurrentPage((prev) => Math.max(prev - 1, 1));
+  const handleApproveUser = async (user: AdminUser) => {
+    setActionLoading(user.id);
+    try {
+      await adminUserService.approveUser(user.id);
+      mutate();
+      toast.success(`${user.first_name} ${user.last_name} approved successfully`);
+      if (selectedUser?.id === user.id) {
+        setSelectedUser({ ...selectedUser, is_approved: true });
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to approve user";
+      toast.error(message);
+    } finally {
+      setActionLoading(null);
+    }
   };
 
-  const handleNextPage = () => {
-    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+  const handleToggleActive = async (user: AdminUser) => {
+    setActionLoading(user.id);
+    try {
+      if (user.is_active) {
+        await adminUserService.deactivateUser(user.id);
+        toast.success(`${user.first_name} ${user.last_name} deactivated`);
+      } else {
+        await adminUserService.activateUser(user.id);
+        toast.success(`${user.first_name} ${user.last_name} activated`);
+      }
+      mutate();
+      if (selectedUser?.id === user.id) {
+        setSelectedUser({ ...selectedUser, is_active: !user.is_active });
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to update user status";
+      toast.error(message);
+    } finally {
+      setActionLoading(null);
+    }
   };
+
+  // Stats (from current filtered view)
+  const pendingCount = users.filter((u) => !u.is_approved).length;
+  const activeCount = users.filter((u) => u.is_approved && u.is_active).length;
+  const adminCount = users.filter((u) => u.role === "admin" || u.role === "super_admin").length;
+
+  // Loading state
+  if (isLoading && users.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <AlertCircle className="h-12 w-12 text-destructive" />
+        <p className="text-lg text-muted-foreground">Failed to load users</p>
+        <Button onClick={() => mutate()} variant="outline">
+          Retry
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="ml-0 md:ml-0 pl-14 md:pl-0">
-          <h1 className="tracking-tight bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent">Manage Users</h1>
+          <h1 className="tracking-tight bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent">
+            Manage Users
+          </h1>
         </div>
-        <motion.div whileTap={{ scale: 0.96 }}>
-          <Button
-            onClick={handleOpenAddUser}
-            className="gap-2 rounded-xl shadow-lg shadow-primary/10 bg-gradient-to-br from-primary to-primary/90 hover:from-primary/90 hover:to-primary"
-          >
-            <UserPlus className="h-4 w-4" />
-            Add User
-          </Button>
-        </motion.div>
       </div>
 
-      {/* Stats Cards - Ultra Minimal */}
+      {/* Stats Cards */}
       <div className="grid gap-6 md:grid-cols-4">
-        <PremiumStatCard
-          value={filteredUsers.length}
-          label="Total Users"
-          variant="primary"
-        />
-        <PremiumStatCard
-          value={filteredUsers.filter((u) => u.role === "Super Admin" || u.role === "Administrator").length}
-          label="Admins"
-          variant="secondary"
-        />
-        <PremiumStatCard
-          value={filteredUsers.filter((u) => u.status === "Pending").length}
-          label="Pending"
-          variant="gold"
-        />
-        <PremiumStatCard
-          value={filteredUsers.filter((u) => u.status === "Active").length}
-          label="Active"
-          variant="pink"
-        />
+        <PremiumStatCard value={totalCount} label="Total Users" variant="primary" />
+        <PremiumStatCard value={adminCount} label="Admins" variant="secondary" />
+        <PremiumStatCard value={pendingCount} label="Pending" variant="gold" />
+        <PremiumStatCard value={activeCount} label="Active" variant="pink" />
       </div>
 
       {/* Search and Filters */}
       <div className="flex flex-col lg:flex-row gap-3">
-        {/* Search Box */}
         <div className="relative flex-1">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             type="text"
-            placeholder="Search by name, email, phone, or role..."
+            placeholder="Search by name, email, or phone..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-4 h-9 rounded-xl bg-background/60 backdrop-blur-sm border-border/40 focus:border-primary/40 shadow-sm"
+            className="pl-9 h-11 rounded-xl bg-background/60 backdrop-blur-sm border-border/40 focus:border-primary/40 shadow-sm"
           />
         </div>
 
-        {/* Filter Options */}
         <div className="flex gap-3">
-          <Select value={filterRole} onValueChange={(value) => setFilterRole(value)}>
-            <SelectTrigger className="w-[200px] h-9 rounded-xl bg-background/60 backdrop-blur-sm border-border/40">
+          <Select value={filterRole} onValueChange={setFilterRole}>
+            <SelectTrigger className="w-[180px] h-11 rounded-xl bg-background/60 backdrop-blur-sm border-border/40">
               <SelectValue placeholder="Role" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Roles</SelectItem>
-              <SelectItem value="Super Admin">Super Admin</SelectItem>
-              <SelectItem value="Administrator">Administrator</SelectItem>
-              <SelectItem value="Financial Controller">Financial Controller</SelectItem>
-              <SelectItem value="Treasurer">Treasurer</SelectItem>
-              <SelectItem value="Member">Member</SelectItem>
+              {USER_ROLES.map((role) => (
+                <SelectItem key={role} value={role}>
+                  {ROLE_DISPLAY_NAMES[role]}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
 
-          <Select value={filterStatus} onValueChange={(value) => setFilterStatus(value)}>
-            <SelectTrigger className="w-[140px] h-9 rounded-xl bg-background/60 backdrop-blur-sm border-border/40">
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="w-[140px] h-11 rounded-xl bg-background/60 backdrop-blur-sm border-border/40">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -460,7 +336,7 @@ export default function ManageUsers() {
         </div>
       </div>
 
-      {/* Premium Minimal Table */}
+      {/* Table */}
       <div
         className={cn(
           "rounded-2xl bg-gradient-to-br from-background/60 to-background/30 backdrop-blur-sm overflow-hidden shadow-lg shadow-primary/5 flex flex-col",
@@ -468,8 +344,8 @@ export default function ManageUsers() {
         )}
       >
         <div
-          className="overflow-x-auto overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-muted/20 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-primary/30 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-primary/40"
-          style={{ minHeight: "calc(100vh - 370px)", maxHeight: "calc(100vh - 370px)" }}
+          className="overflow-x-auto overflow-y-auto"
+          style={{ minHeight: "calc(100vh - 420px)", maxHeight: "calc(100vh - 420px)" }}
         >
           <Table className="table-fixed w-full">
             <TableHeader>
@@ -486,111 +362,148 @@ export default function ManageUsers() {
                 <TableHead className="hidden md:table-cell h-10 px-3 md:px-6 text-[13px] font-semibold uppercase tracking-wider text-muted-foreground/90 w-[110px]">
                   Status
                 </TableHead>
-                <TableHead className="h-10 px-3 md:px-6 text-center text-[13px] font-semibold uppercase tracking-wider text-muted-foreground/90 w-[140px]">
+                <TableHead className="h-10 px-3 md:px-6 text-center text-[13px] font-semibold uppercase tracking-wider text-muted-foreground/90 w-[160px]">
                   Actions
                 </TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody style={{ minHeight: `${itemsPerPage * 40}px` }}>
-              {currentUsers.map((user, index) => (
-                <TableRow
-                  key={user.id}
-                  className={cn(
-                    "border-border/20 transition-all duration-200",
-                    "hover:bg-accent/30",
-                    index === currentUsers.length - 1 && "border-0"
-                  )}
-                >
-                  <TableCell className="py-1.5 px-3 md:px-6 w-[200px]">
-                    <div className="font-medium text-[15px] text-foreground">
-                      {user.name}
-                    </div>
-                  </TableCell>
-                  <TableCell className="hidden sm:table-cell py-1.5 px-3 md:px-6 w-[220px]">
-                    <div className="text-[14px] text-muted-foreground">
-                      {user.email}
-                    </div>
-                  </TableCell>
-                  <TableCell className="py-1.5 px-3 md:px-6 w-[140px]">
-                    <div
-                      className={cn(
-                        "text-[13px] font-medium",
-                        user.role === "Super Admin" && "text-[#5A1E6E] dark:text-[#9F7FB8]",
-                        user.role === "Administrator" && "text-[#F36A21] dark:text-[#FF8F5E]",
-                        user.role === "Financial Controller" && "text-[#3D123F] dark:text-[#8B6B8E]",
-                        user.role === "Treasurer" && "text-gray-700 dark:text-gray-300"
-                      )}
-                    >
-                      {user.role}
-                    </div>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell py-1.5 px-3 md:px-6 w-[110px]">
-                    <div
-                      className={cn(
-                        "text-[13px] font-medium",
-                        user.status === "Active" && "text-emerald-700 dark:text-emerald-400",
-                        user.status === "Pending" && "text-[#F2B705]",
-                        user.status === "Inactive" && "text-slate-600 dark:text-slate-400"
-                      )}
-                    >
-                      {user.status}
-                    </div>
-                  </TableCell>
-                  <TableCell className="py-1.5 px-3 md:px-6 w-[140px]">
-                    <div className="flex items-center justify-center gap-2">
-                      <motion.div whileTap={{ scale: 0.95 }}>
-                        <Button
-                          onClick={() => handleViewDetails(user)}
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 rounded-lg hover:bg-accent/50"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </motion.div>
-                      <motion.div whileTap={{ scale: 0.95 }}>
-                        <Button
-                          onClick={() => {
-                            setSelectedUser(user);
-                            setEditedUser({ ...user });
-                            setIsEditing(true);
-                          }}
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 rounded-lg hover:bg-accent/50"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      </motion.div>
-                    </div>
+            <TableBody>
+              {users.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
+                    {searchQuery || filterRole !== "all" || filterStatus !== "all"
+                      ? "No users match your filters"
+                      : "No users found"}
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                users.map((user, index) => {
+                  const status = getUserStatus(user);
+                  return (
+                    <TableRow
+                      key={user.id}
+                      className={cn(
+                        "border-border/20 transition-all duration-200",
+                        "hover:bg-accent/30",
+                        index === users.length - 1 && "border-0"
+                      )}
+                    >
+                      <TableCell className="py-2 px-3 md:px-6 w-[200px]">
+                        <div className="font-medium text-[15px] text-foreground">
+                          {user.first_name} {user.last_name}
+                        </div>
+                        {user.member_part && (
+                          <div className="text-xs text-muted-foreground">
+                            {MEMBER_PART_DISPLAY_NAMES[user.member_part]}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell py-2 px-3 md:px-6 w-[220px]">
+                        <div className="text-[14px] text-muted-foreground truncate">
+                          {user.email}
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-2 px-3 md:px-6 w-[140px]">
+                        <div
+                          className={cn(
+                            "text-[13px] font-medium",
+                            user.role === "super_admin" && "text-[#5A1E6E] dark:text-[#9F7FB8]",
+                            user.role === "admin" && "text-[#F36A21] dark:text-[#FF8F5E]",
+                            (user.role === "finance_admin" || user.role === "treasurer") &&
+                              "text-[#3D123F] dark:text-[#8B6B8E]"
+                          )}
+                        >
+                          {ROLE_DISPLAY_NAMES[user.role]}
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell py-2 px-3 md:px-6 w-[110px]">
+                        <div
+                          className={cn(
+                            "text-[13px] font-medium",
+                            status === "Active" && "text-emerald-700 dark:text-emerald-400",
+                            status === "Pending" && "text-[#F2B705]",
+                            status === "Inactive" && "text-slate-600 dark:text-slate-400"
+                          )}
+                        >
+                          {status}
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-2 px-3 md:px-6 w-[160px]">
+                        <div className="flex items-center justify-center gap-1">
+                          <motion.div whileTap={{ scale: 0.95 }}>
+                            <Button
+                              onClick={() => handleViewDetails(user)}
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 rounded-lg hover:bg-accent/50"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </motion.div>
+                          <motion.div whileTap={{ scale: 0.95 }}>
+                            <Button
+                              onClick={() => {
+                                handleViewDetails(user);
+                                setTimeout(() => setIsEditing(true), 100);
+                              }}
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 rounded-lg hover:bg-accent/50"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </motion.div>
+                          {!user.is_approved && (
+                            <motion.div whileTap={{ scale: 0.95 }}>
+                              <Button
+                                onClick={() => handleApproveUser(user)}
+                                variant="ghost"
+                                size="sm"
+                                disabled={actionLoading === user.id}
+                                className="h-8 px-2 rounded-lg hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                              >
+                                {actionLoading === user.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <>
+                                    <CheckCircle className="h-4 w-4 mr-1" />
+                                    Approve
+                                  </>
+                                )}
+                              </Button>
+                            </motion.div>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
             </TableBody>
           </Table>
         </div>
 
         {/* Pagination */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-t border-border/20 px-8 py-2 bg-background/20">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-t border-border/20 px-6 py-3 bg-background/20">
           <div className="flex items-center gap-4">
             <div className="text-[13px] text-muted-foreground">
               Showing{" "}
               <span className="font-medium text-foreground">
-                {filteredUsers.length === 0 ? 0 : startIndex + 1}-{Math.min(endIndex, filteredUsers.length)}
+                {users.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1}-
+                {Math.min(currentPage * itemsPerPage, totalCount)}
               </span>{" "}
-              of <span className="font-medium text-foreground">{filteredUsers.length}</span>
+              of <span className="font-medium text-foreground">{totalCount}</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-[13px] text-muted-foreground">Items per page:</span>
+              <span className="text-[13px] text-muted-foreground">Per page:</span>
               <Select
                 value={itemsPerPage.toString()}
                 onValueChange={(value) => setItemsPerPage(Number(value))}
               >
-                <SelectTrigger className="w-[80px] h-8 rounded-lg text-[13px] bg-transparent hover:bg-transparent dark:bg-transparent dark:hover:bg-transparent">
+                <SelectTrigger className="w-[70px] h-8 rounded-lg text-[13px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="5">5</SelectItem>
                   <SelectItem value="10">10</SelectItem>
                   <SelectItem value="20">20</SelectItem>
                   <SelectItem value="50">50</SelectItem>
@@ -599,132 +512,75 @@ export default function ManageUsers() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <motion.div whileTap={{ scale: 0.96 }}>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handlePreviousPage}
-                disabled={currentPage === 1}
-                className="rounded-xl gap-2 disabled:opacity-40"
-              >
-                <ChevronLeft className="h-4 w-4" />
-                Previous
-              </Button>
-            </motion.div>
-            <div className="flex items-center gap-1 px-2">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                (page) => {
-                  // Show first page, last page, current page, and pages around current
-                  const showPage =
-                    page === 1 ||
-                    page === totalPages ||
-                    (page >= currentPage - 1 && page <= currentPage + 1);
-
-                  if (!showPage) {
-                    // Show ellipsis
-                    if (page === currentPage - 2 || page === currentPage + 2) {
-                      return (
-                        <span
-                          key={page}
-                          className="px-2 text-sm text-muted-foreground"
-                        >
-                          ...
-                        </span>
-                      );
-                    }
-                    return null;
-                  }
-
-                  return (
-                    <motion.button
-                      key={page}
-                      whileTap={{ scale: 0.92 }}
-                      onClick={() => setCurrentPage(page)}
-                      className={cn(
-                        "h-9 w-9 rounded-lg text-[13px] font-medium transition-all duration-200",
-                        "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/20",
-                        page === currentPage
-                          ? "text-primary"
-                          : "text-muted-foreground hover:text-foreground"
-                      )}
-                    >
-                      {page}
-                    </motion.button>
-                  );
-                }
-              )}
-            </div>
-            <motion.div whileTap={{ scale: 0.96 }}>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleNextPage}
-                disabled={currentPage === totalPages}
-                className="rounded-xl gap-2 disabled:opacity-40"
-              >
-                Next
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </motion.div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="rounded-xl gap-2"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </Button>
+            <span className="text-sm text-muted-foreground px-2">
+              {currentPage} / {totalPages || 1}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage >= totalPages}
+              className="rounded-xl gap-2"
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </div>
 
-      {/* View/Edit User Drawer */}
+      {/* View/Edit User Sheet */}
       <Sheet open={!!selectedUser} onOpenChange={handleCloseSheet}>
-        <SheetContent className="sm:max-w-[380px] p-0 flex flex-col">
-          {/* Visually hidden but accessible title and description */}
+        <SheetContent className="sm:max-w-[420px] p-0 flex flex-col">
           <SheetTitle className="sr-only">
             {isEditing ? "Edit User" : "User Details"}
           </SheetTitle>
           <SheetDescription className="sr-only">
-            {isEditing
-              ? "Update user information and save changes"
-              : "View detailed information about this user"}
+            {isEditing ? "Update user information" : "View user details"}
           </SheetDescription>
 
-          {editedUser && (
-            <div ref={drawerContentRef} className="flex flex-col h-full overflow-y-auto">
-              {/* Header Section */}
+          {selectedUser && (
+            <div className="flex flex-col h-full overflow-y-auto">
+              {/* Header */}
               <div className="px-6 pt-8 pb-6 border-b border-border/20">
-                {/* User Name and Email */}
                 <div className="space-y-1 mb-4">
                   <h2 className="text-2xl font-semibold tracking-tight">
-                    {editedUser.name}
+                    {selectedUser.first_name} {selectedUser.last_name}
                   </h2>
-                  <p className="text-sm text-muted-foreground">
-                    {editedUser.email}
-                  </p>
+                  <p className="text-sm text-muted-foreground">{selectedUser.email}</p>
                 </div>
 
-                {/* Status Badges */}
                 <div className="flex flex-wrap gap-2">
-                  <Badge
-                    variant="secondary"
-                    className={cn(
-                      "rounded-full px-3 py-1 text-xs font-medium",
-                      getRoleColor(editedUser.role)
-                    )}
-                  >
-                    {editedUser.role}
+                  <Badge variant="secondary" className={cn("rounded-full px-3 py-1 text-xs font-medium", getRoleColor(selectedUser.role))}>
+                    {ROLE_DISPLAY_NAMES[selectedUser.role]}
                   </Badge>
                   <Badge
                     variant="secondary"
                     className={cn(
                       "rounded-full px-3 py-1 text-xs font-medium",
-                      editedUser.status === "Active"
-                        ? "bg-gradient-to-br from-emerald-500/15 to-emerald-600/25 text-emerald-700 dark:text-emerald-400 shadow-sm shadow-emerald-500/10"
-                        : editedUser.status === "Pending"
-                        ? "bg-gradient-to-br from-[#F2B705]/15 to-[#F2B705]/25 text-[#F2B705] shadow-sm shadow-[#F2B705]/10"
-                        : "bg-gradient-to-br from-slate-500/15 to-slate-600/25 text-slate-600 dark:text-slate-400 shadow-sm shadow-slate-500/10"
+                      getUserStatus(selectedUser) === "Active"
+                        ? "bg-gradient-to-br from-emerald-500/15 to-emerald-600/25 text-emerald-700 dark:text-emerald-400"
+                        : getUserStatus(selectedUser) === "Pending"
+                        ? "bg-gradient-to-br from-[#F2B705]/15 to-[#F2B705]/25 text-[#F2B705]"
+                        : "bg-gradient-to-br from-slate-500/15 to-slate-600/25 text-slate-600 dark:text-slate-400"
                     )}
                   >
-                    {editedUser.status}
+                    {getUserStatus(selectedUser)}
                   </Badge>
                 </div>
               </div>
 
-              {/* Content Section */}
+              {/* Content */}
               <div className="flex-1 overflow-y-auto px-6 py-6">
                 <AnimatePresence mode="wait">
                   {isEditing ? (
@@ -733,103 +589,103 @@ export default function ManageUsers() {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
-                      transition={{ duration: 0.3, ease: "easeInOut" }}
+                      className="space-y-6"
                     >
-                      {/* Edit Mode */}
-                      <div className="space-y-6">
-                        {/* Basic Information */}
-                        <div className="space-y-4">
-                          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                            Basic Information
-                          </h3>
+                      {/* Edit Form */}
+                      <div className="space-y-4">
+                        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          Basic Information
+                        </h3>
 
+                        <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
-                            <Label htmlFor="name" className="text-sm">Full Name</Label>
+                            <Label htmlFor="first_name" className="text-sm">First Name</Label>
                             <Input
-                              id="name"
-                              value={editedUser.name}
-                              onChange={(e) =>
-                                setEditedUser({ ...editedUser, name: e.target.value })
-                              }
+                              id="first_name"
+                              value={editForm.first_name || ""}
+                              onChange={(e) => setEditForm({ ...editForm, first_name: e.target.value })}
                               className="rounded-xl border-border/60"
                             />
                           </div>
-
                           <div className="space-y-2">
-                            <Label htmlFor="email" className="text-sm">Email</Label>
+                            <Label htmlFor="last_name" className="text-sm">Last Name</Label>
                             <Input
-                              id="email"
-                              type="email"
-                              value={editedUser.email}
-                              onChange={(e) =>
-                                setEditedUser({ ...editedUser, email: e.target.value })
-                              }
-                              className="rounded-xl border-border/60"
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="phone" className="text-sm">Phone</Label>
-                            <Input
-                              id="phone"
-                              value={editedUser.phone || ""}
-                              onChange={(e) =>
-                                setEditedUser({ ...editedUser, phone: e.target.value })
-                              }
+                              id="last_name"
+                              value={editForm.last_name || ""}
+                              onChange={(e) => setEditForm({ ...editForm, last_name: e.target.value })}
                               className="rounded-xl border-border/60"
                             />
                           </div>
                         </div>
 
-                        <Separator className="bg-gradient-to-r from-transparent via-border/60 to-transparent" />
+                        <div className="space-y-2">
+                          <Label htmlFor="phone_number" className="text-sm">Phone</Label>
+                          <Input
+                            id="phone_number"
+                            value={editForm.phone_number || ""}
+                            onChange={(e) => setEditForm({ ...editForm, phone_number: e.target.value })}
+                            className="rounded-xl border-border/60"
+                          />
+                        </div>
+                      </div>
 
-                        {/* Role & Status */}
-                        <div className="space-y-4">
-                          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                            Role & Status
-                          </h3>
+                      <Separator className="bg-gradient-to-r from-transparent via-border/60 to-transparent" />
 
-                          <div className="space-y-2">
-                            <Label htmlFor="role" className="text-sm">User Role</Label>
-                            <Select
-                              value={editedUser.role}
-                              onValueChange={(value) =>
-                                setEditedUser({
-                                  ...editedUser,
-                                  role: value as User["role"],
-                                })
-                              }
-                            >
-                              <SelectTrigger className="rounded-xl border-border/60">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {userRoles.map((role) => (
-                                  <SelectItem key={role} value={role}>
-                                    {role}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
+                      <div className="space-y-4">
+                        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          Role & Status
+                        </h3>
 
-                          <div className="space-y-2">
-                            <Label htmlFor="status" className="text-sm">Status</Label>
-                            <div className="flex items-center gap-3 rounded-xl border border-border/60 px-4 py-2.5 bg-background">
-                              <Switch
-                                id="status"
-                                checked={editedUser.status === "Active"}
-                                onCheckedChange={(checked) =>
-                                  setEditedUser({
-                                    ...editedUser,
-                                    status: checked ? "Active" : "Inactive",
-                                  })
-                                }
-                              />
-                              <Label htmlFor="status" className="cursor-pointer text-sm">
-                                {editedUser.status}
-                              </Label>
-                            </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="role" className="text-sm">User Role</Label>
+                          <Select
+                            value={editForm.role}
+                            onValueChange={(value) => setEditForm({ ...editForm, role: value as UserRole })}
+                          >
+                            <SelectTrigger className="rounded-xl border-border/60">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {USER_ROLES.map((role) => (
+                                <SelectItem key={role} value={role}>
+                                  {ROLE_DISPLAY_NAMES[role]}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="member_part" className="text-sm">Voice Part</Label>
+                          <Select
+                            value={editForm.member_part || "none"}
+                            onValueChange={(value) => setEditForm({ ...editForm, member_part: value === "none" ? "" : value as MemberPart })}
+                          >
+                            <SelectTrigger className="rounded-xl border-border/60">
+                              <SelectValue placeholder="Select voice part" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">None</SelectItem>
+                              {MEMBER_PARTS.map((part) => (
+                                <SelectItem key={part} value={part}>
+                                  {MEMBER_PART_DISPLAY_NAMES[part]}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-sm">Active Status</Label>
+                          <div className="flex items-center gap-3 rounded-xl border border-border/60 px-4 py-2.5 bg-background">
+                            <Switch
+                              id="is_active"
+                              checked={editForm.is_active}
+                              onCheckedChange={(checked) => setEditForm({ ...editForm, is_active: checked })}
+                            />
+                            <Label htmlFor="is_active" className="cursor-pointer text-sm">
+                              {editForm.is_active ? "Active" : "Inactive"}
+                            </Label>
                           </div>
                         </div>
                       </div>
@@ -840,146 +696,167 @@ export default function ManageUsers() {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
-                      transition={{ duration: 0.3, ease: "easeInOut" }}
+                      className="space-y-6"
                     >
                       {/* View Mode */}
-                      <div className="space-y-6">
-                        {/* Basic Information */}
+                      <div className="space-y-4">
+                        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          Basic Information
+                        </h3>
+
                         <div className="space-y-4">
-                          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                            Basic Information
-                          </h3>
-
-                          <div className="space-y-4">
-                            <div className="space-y-1.5">
-                              <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                <User className="h-3.5 w-3.5" />
-                                Name
-                              </div>
-                              <div className="text-sm text-foreground pl-5.5">
-                                {editedUser.name}
-                              </div>
+                          <div className="space-y-1.5">
+                            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase">
+                              <User className="h-3.5 w-3.5" />
+                              Name
                             </div>
-
-                            <div className="space-y-1.5">
-                              <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                <Mail className="h-3.5 w-3.5" />
-                                Email
-                              </div>
-                              <div className="text-sm text-foreground pl-5.5">
-                                {editedUser.email}
-                              </div>
-                            </div>
-
-                            {editedUser.phone && (
-                              <div className="space-y-1.5">
-                                <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                  <Phone className="h-3.5 w-3.5" />
-                                  Phone
-                                </div>
-                                <div className="text-sm text-foreground pl-5.5">
-                                  {editedUser.phone}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        <Separator className="bg-gradient-to-r from-transparent via-border/60 to-transparent" />
-
-                        {/* Role & Status */}
-                        <div className="space-y-4">
-                          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                            Role & Status
-                          </h3>
-
-                          <div className="space-y-4">
-                            <div className="space-y-1.5">
-                              <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                <Shield className="h-3.5 w-3.5" />
-                                Role
-                              </div>
-                              <div className="text-sm text-foreground pl-5.5">
-                                {editedUser.role}
-                              </div>
-                            </div>
-
-                            <div className="space-y-1.5">
-                              <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                <User className="h-3.5 w-3.5" />
-                                Status
-                              </div>
-                              <div className="text-sm text-foreground pl-5.5">
-                                {editedUser.status}
-                              </div>
+                            <div className="text-sm text-foreground pl-5.5">
+                              {selectedUser.first_name} {selectedUser.last_name}
                             </div>
                           </div>
+
+                          <div className="space-y-1.5">
+                            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase">
+                              <Mail className="h-3.5 w-3.5" />
+                              Email
+                            </div>
+                            <div className="text-sm text-foreground pl-5.5">{selectedUser.email}</div>
+                          </div>
+
+                          {selectedUser.phone_number && (
+                            <div className="space-y-1.5">
+                              <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase">
+                                <Phone className="h-3.5 w-3.5" />
+                                Phone
+                              </div>
+                              <div className="text-sm text-foreground pl-5.5">{selectedUser.phone_number}</div>
+                            </div>
+                          )}
+
+                          {selectedUser.member_part && (
+                            <div className="space-y-1.5">
+                              <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase">
+                                <Music className="h-3.5 w-3.5" />
+                                Voice Part
+                              </div>
+                              <div className="text-sm text-foreground pl-5.5">
+                                {MEMBER_PART_DISPLAY_NAMES[selectedUser.member_part]}
+                              </div>
+                            </div>
+                          )}
                         </div>
+                      </div>
 
-                        <Separator className="bg-gradient-to-r from-transparent via-border/60 to-transparent" />
+                      <Separator className="bg-gradient-to-r from-transparent via-border/60 to-transparent" />
 
-                        {/* Activity Information */}
+                      <div className="space-y-4">
+                        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          Role & Status
+                        </h3>
+
                         <div className="space-y-4">
-                          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                            Activity
-                          </h3>
+                          <div className="space-y-1.5">
+                            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase">
+                              <Shield className="h-3.5 w-3.5" />
+                              Role
+                            </div>
+                            <div className="text-sm text-foreground pl-5.5">
+                              {ROLE_DISPLAY_NAMES[selectedUser.role]}
+                            </div>
+                          </div>
 
-                          <div className="space-y-4">
-                            {editedUser && (
-                              <div className="space-y-1.5">
-                                <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                  <Calendar className="h-3.5 w-3.5" />
-                                  Date Added
-                                </div>
-                                <div className="text-sm text-foreground pl-5.5">
-                                  {new Date(editedUser.dateAdded).toLocaleDateString(
-                                    "en-US",
-                                    {
-                                      year: "numeric",
-                                      month: "long",
-                                      day: "numeric",
-                                    }
-                                  )}
-                                </div>
-                              </div>
-                            )}
-
-                            {editedUser?.lastLogin && (
-                              <div className="space-y-1.5">
-                                <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                  <Clock className="h-3.5 w-3.5" />
-                                  Last Login
-                                </div>
-                                <div className="text-sm text-foreground pl-5.5">
-                                  {new Date(editedUser.lastLogin).toLocaleDateString(
-                                    "en-US",
-                                    {
-                                      year: "numeric",
-                                      month: "long",
-                                      day: "numeric",
-                                    }
-                                  )}
-                                </div>
-                              </div>
-                            )}
+                          <div className="space-y-1.5">
+                            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase">
+                              <User className="h-3.5 w-3.5" />
+                              Status
+                            </div>
+                            <div className="text-sm text-foreground pl-5.5">
+                              {getUserStatus(selectedUser)}
+                              {!selectedUser.is_approved && (
+                                <span className="text-xs text-muted-foreground ml-2">(Awaiting approval)</span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
+
+                      <Separator className="bg-gradient-to-r from-transparent via-border/60 to-transparent" />
+
+                      <div className="space-y-4">
+                        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          Activity
+                        </h3>
+
+                        <div className="space-y-4">
+                          <div className="space-y-1.5">
+                            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase">
+                              <Calendar className="h-3.5 w-3.5" />
+                              Joined
+                            </div>
+                            <div className="text-sm text-foreground pl-5.5">
+                              {new Date(selectedUser.created_at).toLocaleDateString("en-US", {
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric",
+                              })}
+                            </div>
+                          </div>
+
+                          {selectedUser.last_login_at && (
+                            <div className="space-y-1.5">
+                              <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase">
+                                <Clock className="h-3.5 w-3.5" />
+                                Last Login
+                              </div>
+                              <div className="text-sm text-foreground pl-5.5">
+                                {new Date(selectedUser.last_login_at).toLocaleDateString("en-US", {
+                                  year: "numeric",
+                                  month: "long",
+                                  day: "numeric",
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Quick Actions */}
+                      {!selectedUser.is_approved && (
+                        <>
+                          <Separator className="bg-gradient-to-r from-transparent via-border/60 to-transparent" />
+                          <div className="space-y-4">
+                            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                              Quick Actions
+                            </h3>
+                            <Button
+                              onClick={() => handleApproveUser(selectedUser)}
+                              disabled={actionLoading === selectedUser.id}
+                              className="w-full gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white"
+                            >
+                              {actionLoading === selectedUser.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <CheckCircle className="h-4 w-4" />
+                              )}
+                              Approve User
+                            </Button>
+                          </div>
+                        </>
+                      )}
                     </motion.div>
                   )}
                 </AnimatePresence>
               </div>
 
-              {/* Footer Actions */}
+              {/* Footer */}
               <div className="border-t border-border/20 px-6 py-4">
                 <AnimatePresence mode="wait">
                   {isEditing ? (
-                    <motion.div 
+                    <motion.div
                       key="edit-buttons"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
-                      transition={{ duration: 0.2 }}
                       className="flex gap-2"
                     >
                       <motion.div whileTap={{ scale: 0.96 }} className="flex-1">
@@ -997,81 +874,45 @@ export default function ManageUsers() {
                           onClick={handleSaveEdit}
                           disabled={saveStatus !== "idle"}
                           className={cn(
-                            "w-full gap-2 rounded-xl shadow-lg overflow-hidden relative transition-all duration-300",
+                            "w-full gap-2 rounded-xl shadow-lg",
                             saveStatus === "success"
-                              ? "bg-gradient-to-br from-emerald-600 to-emerald-700 shadow-emerald-500/20"
-                              : "bg-gradient-to-br from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-primary/10",
-                            saveStatus !== "idle" && "opacity-100"
+                              ? "bg-gradient-to-br from-emerald-600 to-emerald-700"
+                              : "bg-gradient-to-br from-primary to-primary/90"
                           )}
                         >
-                          <AnimatePresence mode="wait">
-                            {saveStatus === "idle" && (
-                              <motion.div
-                                key="idle"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                transition={{ duration: 0.2 }}
-                                className="flex items-center gap-2"
-                              >
-                                <Save className="h-4 w-4" />
-                                <span>Save</span>
-                              </motion.div>
-                            )}
-                            {saveStatus === "saving" && (
-                              <motion.div
-                                key="saving"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                transition={{ duration: 0.2 }}
-                                className="flex items-center gap-2"
-                              >
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                                <span>Saving...</span>
-                              </motion.div>
-                            )}
-                            {saveStatus === "success" && (
-                              <motion.div
-                                key="success"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                transition={{ duration: 0.2 }}
-                                className="flex items-center gap-2"
-                              >
-                                <motion.div
-                                  initial={{ scale: 0 }}
-                                  animate={{ scale: 1 }}
-                                  transition={{ 
-                                    type: "spring", 
-                                    stiffness: 200, 
-                                    damping: 10,
-                                    delay: 0.1 
-                                  }}
-                                >
-                                  <Check className="h-4 w-4" />
-                                </motion.div>
-                                <span>Saved!</span>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
+                          {saveStatus === "idle" && (
+                            <>
+                              <Save className="h-4 w-4" />
+                              Save
+                            </>
+                          )}
+                          {saveStatus === "saving" && (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Saving...
+                            </>
+                          )}
+                          {saveStatus === "success" && (
+                            <>
+                              <Check className="h-4 w-4" />
+                              Saved!
+                            </>
+                          )}
                         </Button>
                       </motion.div>
                     </motion.div>
                   ) : (
-                    <motion.div 
+                    <motion.div
                       key="view-button"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                      whileTap={{ scale: 0.96 }} 
+                      whileTap={{ scale: 0.96 }}
                       className="w-full"
                     >
                       <Button
                         onClick={handleEditClick}
-                        className="w-full gap-2 rounded-xl shadow-lg shadow-primary/10 bg-gradient-to-br from-primary to-primary/90 hover:from-primary/90 hover:to-primary"
+                        className="w-full gap-2 rounded-xl shadow-lg shadow-primary/10 bg-gradient-to-br from-primary to-primary/90"
                       >
                         <Pencil className="h-4 w-4" />
                         Edit User
@@ -1082,171 +923,6 @@ export default function ManageUsers() {
               </div>
             </div>
           )}
-        </SheetContent>
-      </Sheet>
-
-      {/* Add User Drawer */}
-      <Sheet open={isAddingUser} onOpenChange={handleCloseAddUser}>
-        <SheetContent className="sm:max-w-[380px] p-0 flex flex-col">
-          <SheetTitle className="sr-only">Add New User</SheetTitle>
-          <SheetDescription className="sr-only">
-            Add a new user account for the portal
-          </SheetDescription>
-
-          <div ref={addUserContentRef} className="flex flex-col h-full overflow-y-auto">
-            {/* Header Section */}
-            <div className="px-6 pt-8 pb-6 border-b border-border/20">
-              <h2 className="text-2xl font-semibold tracking-tight">Add New User</h2>
-              <p className="text-sm text-muted-foreground mt-1">
-                Create a new user account for the portal
-              </p>
-            </div>
-
-            {/* Content Section */}
-            <div className="flex-1 overflow-y-auto px-6 py-6">
-              <div className="space-y-6">
-                {/* Basic Information */}
-                <div className="space-y-4">
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Basic Information
-                  </h3>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="new-name" className="text-sm">Full Name *</Label>
-                    <Input
-                      id="new-name"
-                      value={newUser.name}
-                      onChange={(e) =>
-                        setNewUser({ ...newUser, name: e.target.value })
-                      }
-                      placeholder="Enter full name"
-                      className="rounded-xl border-border/60"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="new-email" className="text-sm">Email *</Label>
-                    <Input
-                      id="new-email"
-                      type="email"
-                      value={newUser.email}
-                      onChange={(e) =>
-                        setNewUser({ ...newUser, email: e.target.value })
-                      }
-                      placeholder="user@vocalessence.org"
-                      className="rounded-xl border-border/60"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="new-phone" className="text-sm">Phone</Label>
-                    <Input
-                      id="new-phone"
-                      value={newUser.phone}
-                      onChange={(e) =>
-                        setNewUser({ ...newUser, phone: e.target.value })
-                      }
-                      placeholder="+1 (555) 123-4567"
-                      className="rounded-xl border-border/60"
-                    />
-                  </div>
-                </div>
-
-                <Separator className="bg-gradient-to-r from-transparent via-border/60 to-transparent" />
-
-                {/* Role & Status */}
-                <div className="space-y-4">
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Role & Status
-                  </h3>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="new-role" className="text-sm">User Role</Label>
-                    <Select
-                      value={newUser.role}
-                      onValueChange={(value) =>
-                        setNewUser({ ...newUser, role: value as User["role"] })
-                      }
-                    >
-                      <SelectTrigger className="rounded-xl border-border/60">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {userRoles.map((role) => (
-                          <SelectItem key={role} value={role}>
-                            {role}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="new-status" className="text-sm">Status</Label>
-                    <div className="flex items-center gap-3 rounded-xl border border-border/60 px-4 py-2.5 bg-background">
-                      <Switch
-                        id="new-status"
-                        checked={newUser.status === "Active"}
-                        onCheckedChange={(checked) =>
-                          setNewUser({
-                            ...newUser,
-                            status: checked ? "Active" : "Inactive",
-                          })
-                        }
-                      />
-                      <Label htmlFor="new-status" className="cursor-pointer text-sm">
-                        {newUser.status}
-                      </Label>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Footer Actions */}
-            <div className="border-t border-border/20 px-6 py-4 bg-muted/10">
-              <div className="flex gap-3">
-                <motion.div whileTap={{ scale: 0.96 }} className="flex-1">
-                  <Button
-                    onClick={handleCloseAddUser}
-                    variant="outline"
-                    className="w-full rounded-xl border-border/60 hover:bg-muted/50"
-                    disabled={saveStatus === "saving"}
-                  >
-                    Cancel
-                  </Button>
-                </motion.div>
-                <motion.div whileTap={{ scale: 0.96 }} className="flex-1">
-                  <Button
-                    onClick={handleAddUser}
-                    className="w-full gap-2 rounded-xl bg-gradient-to-br from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-lg shadow-primary/10"
-                    disabled={
-                      saveStatus === "saving" ||
-                      !newUser.name.trim() ||
-                      !newUser.email.trim()
-                    }
-                  >
-                    {saveStatus === "saving" ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Adding...
-                      </>
-                    ) : saveStatus === "success" ? (
-                      <>
-                        <Check className="h-4 w-4" />
-                        Added!
-                      </>
-                    ) : (
-                      <>
-                        <UserPlus className="h-4 w-4" />
-                        Add User
-                      </>
-                    )}
-                  </Button>
-                </motion.div>
-              </div>
-            </div>
-          </div>
         </SheetContent>
       </Sheet>
     </div>

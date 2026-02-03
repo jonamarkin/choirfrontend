@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
 import { Eye, EyeOff, Mail, Lock, Loader2, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { cn } from "@/components/ui/utils";
@@ -57,8 +58,17 @@ export default function Login() {
     setRootError(null);
 
     try {
-      await authService.login({ email, password }); // This line was already here
-      router.push("/home");
+      const response = await authService.login({ email, password });
+      
+      if (response.code === 'account_inactive') {
+        toast.error("Account inactive. Please verify your email.");
+        router.push(`/verify-otp?email=${encodeURIComponent(email)}`);
+        return;
+      }
+
+      if (response.access) {
+        router.push("/home");
+      }
     } catch (error: unknown) {
       console.error("Login failed:", error);
 
@@ -260,13 +270,12 @@ export default function Login() {
                 />
                 <span className="text-muted-foreground">Remember me</span>
               </label>
-              <button
-                type="button"
+              <Link
+                href="/forgot-password"
                 className="text-primary hover:text-primary/80 transition-colors font-medium"
-                disabled={isLoading}
               >
                 Forgot password?
-              </button>
+              </Link>
             </div>
 
             {/* Submit Button */}

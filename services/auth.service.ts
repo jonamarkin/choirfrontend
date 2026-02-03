@@ -5,6 +5,10 @@ import {
   User,
   RegisterCredentials,
   ProfileUpdateRequest,
+  VerifyEmailRequest,
+  ResendOtpRequest,
+  ResetPasswordRequest,
+  ConfirmResetPasswordRequest,
 } from "@/types/auth";
 
 export const authService = {
@@ -16,7 +20,7 @@ export const authService = {
     );
 
     if (response.access && typeof window !== "undefined") {
-      this.setTokens(response.access, response.refresh, response.user);
+      this.setTokens(response.access, response.refresh || "", response.user);
     }
 
     return response;
@@ -55,18 +59,34 @@ export const authService = {
     return response.access;
   },
 
-  async register(data: RegisterCredentials): Promise<AuthResponse> {
-    // dj-rest-auth registration endpoint
-    const response = await apiClient.post<AuthResponse>(
+  async register(data: RegisterCredentials): Promise<AuthResponse | User> {
+    const response = await apiClient.post<AuthResponse | User>(
       "/auth/register",
       data
     );
 
-    if (response.access && typeof window !== "undefined") {
-      this.setTokens(response.access, response.refresh, response.user);
+    // If active immediately (unexpected but possible)
+    if ('access' in response && response.access) {
+      this.setTokens(response.access, response.refresh!, response.user);
     }
 
     return response;
+  },
+
+  async verifyEmail(data: VerifyEmailRequest): Promise<{ message: string }> {
+    return apiClient.post<{ message: string }>("/auth/verify-email/", data);
+  },
+
+  async resendOtp(data: ResendOtpRequest): Promise<{ message: string }> {
+    return apiClient.post<{ message: string }>("/auth/resend-otp/", data);
+  },
+
+  async requestPasswordReset(data: ResetPasswordRequest): Promise<{ message: string }> {
+    return apiClient.post<{ message: string }>("/auth/password/reset/", data);
+  },
+
+  async confirmPasswordReset(data: ConfirmResetPasswordRequest): Promise<{ message: string }> {
+    return apiClient.post<{ message: string }>("/auth/password/reset/confirm/", data);
   },
 
   async loginWithGoogle(code: string): Promise<AuthResponse> {
@@ -79,7 +99,7 @@ export const authService = {
     );
 
     if (response.access && typeof window !== "undefined") {
-      this.setTokens(response.access, response.refresh, response.user);
+      this.setTokens(response.access, response.refresh || "", response.user);
     }
 
     return response;

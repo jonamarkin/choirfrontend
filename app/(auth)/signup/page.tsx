@@ -14,6 +14,7 @@ import {
   Phone,
   AlertCircle,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { cn } from "@/components/ui/utils";
 import { Button } from "@/components/ui/button";
@@ -116,14 +117,12 @@ export default function SignUp() {
       });
 
       // Check if we actually have tokens (user might be inactive/pending approval)
-      if (response.access) {
+      if ('access' in response && response.access) {
         router.push("/home");
       } else {
-        // Registration successful but no auto-login (likely inactive)
-        // Show error/info and redirect to login
-        // We'll use setRootError or a toast if available, but for now specific error message
-        alert("Account created successfully! Please wait for admin approval before logging in.");
-        router.push("/login"); // Redirect to login
+        // Registration successful but no auto-login (inactive)
+        toast.success("Account created! Please verify your email.");
+        router.push(`/verify-otp?email=${encodeURIComponent(email)}`);
       }
     } catch (error: unknown) {
       console.error("Registration failed:", error);
