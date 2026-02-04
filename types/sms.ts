@@ -4,6 +4,17 @@
 // SMS Types
 // ============================================
 
+// ============================================
+// Generic Types
+// ============================================
+
+export interface PaginatedResponse<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+}
+
 export interface SingleSMSRequest {
   to: string; // Phone number e.g., "233209335976"
   content: string;

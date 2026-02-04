@@ -4,6 +4,7 @@ import {
   CreateContactRequest,
   BulkCreateContactsRequest,
   BulkCreateContactsResponse,
+  PaginatedResponse,
 } from "@/types/sms";
 
 const BASE_PATH = "/communication/contacts";
@@ -13,7 +14,11 @@ export const contactsService = {
    * List all contacts
    */
   async listContacts(): Promise<Contact[]> {
-    return apiClient.get<Contact[]>(`${BASE_PATH}/`);
+    const response = await apiClient.get<Contact[] | PaginatedResponse<Contact>>(`${BASE_PATH}/`);
+    if ('results' in response && Array.isArray(response.results)) {
+      return response.results;
+    }
+    return Array.isArray(response) ? response : [];
   },
 
   /**

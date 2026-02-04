@@ -6,6 +6,7 @@ import {
   CreateContactGroupRequest,
   AddContactsToGroupRequest,
   RemoveContactsFromGroupRequest,
+  PaginatedResponse,
 } from "@/types/sms";
 
 const BASE_PATH = "/communication/contact-groups";
@@ -15,7 +16,11 @@ export const contactGroupsService = {
    * List all contact groups
    */
   async listGroups(): Promise<ContactGroup[]> {
-    return apiClient.get<ContactGroup[]>(`${BASE_PATH}/`);
+    const response = await apiClient.get<ContactGroup[] | PaginatedResponse<ContactGroup>>(`${BASE_PATH}/`);
+    if ('results' in response && Array.isArray(response.results)) {
+      return response.results;
+    }
+    return Array.isArray(response) ? response : [];
   },
 
   /**
@@ -64,6 +69,10 @@ export const contactGroupsService = {
    * Get contacts in a group
    */
   async getGroupContacts(groupId: string): Promise<Contact[]> {
-    return apiClient.get<Contact[]>(`${BASE_PATH}/${groupId}/contacts/`);
+    const response = await apiClient.get<Contact[] | PaginatedResponse<Contact>>(`${BASE_PATH}/${groupId}/contacts/`);
+    if ('results' in response && Array.isArray(response.results)) {
+      return response.results;
+    }
+    return Array.isArray(response) ? response : [];
   },
 };
