@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { authService } from "@/services/auth.service";
 import { toast } from "sonner";
 
-export default function VerifyOtpPage() {
+function VerifyOtpContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const defaultEmail = searchParams.get("email") || "";
@@ -183,5 +183,24 @@ export default function VerifyOtpPage() {
         </div>
       </motion.div>
     </div>
+  );
+}
+
+function VerifyOtpFallback() {
+  return (
+    <div className="relative min-h-screen flex items-center justify-center p-4 bg-background overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(1200px_circle_at_35%_20%,rgba(90,30,110,0.12),transparent_55%),radial-gradient(1000px_circle_at_70%_80%,rgba(243,106,33,0.08),transparent_50%),radial-gradient(800px_circle_at_10%_90%,rgba(242,183,5,0.06),transparent_45%)]" />
+      <div className="flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    </div>
+  );
+}
+
+export default function VerifyOtpPage() {
+  return (
+    <React.Suspense fallback={<VerifyOtpFallback />}>
+      <VerifyOtpContent />
+    </React.Suspense>
   );
 }
