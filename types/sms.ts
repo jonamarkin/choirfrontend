@@ -156,4 +156,6 @@ export interface SelectedRecipient {
   name: string;
   phone: string;
   source: "manual" | "contact" | "group" | "member";
+  groupId?: string;
+  count?: number; // Estimated contact count for groups
 }

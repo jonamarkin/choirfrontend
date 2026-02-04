@@ -1,212 +1,102 @@
 "use client";
 
 import * as React from "react";
-import { motion, AnimatePresence } from "motion/react";
 import {
   Send,
-  Users,
-  Contact,
-  UsersRound,
-  Keyboard,
-  X,
   Loader2,
   CheckCircle,
   AlertCircle,
-  Search,
+  Save,
+  Info,
 } from "lucide-react";
 import { toast } from "sonner";
+import { motion } from "motion/react";
 
 import { cn } from "@/components/ui/utils";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
 import { smsService } from "@/services/sms.service";
+import { contactGroupsService } from "@/services/contact-groups.service";
+import { contactsService } from "@/services/contacts.service";
 import {
   useContacts,
   useContactGroups,
   useMembersWithPhones,
-  useGroupContacts,
 } from "@/hooks/useSMS";
-import {
-  SelectedRecipient,
-  VoicePart,
-  MemberRole,
-  VOICE_PART_DISPLAY,
-  MEMBER_ROLE_DISPLAY,
-  Contact as ContactType,
-  MemberPhone,
-} from "@/types/sms";
+import { SelectedRecipient } from "@/types/sms";
+import { SmartRecipientInput } from "./smart-recipient-input";
 
 const SMS_CHAR_LIMIT = 160;
 
 export default function ComposeSMS() {
   // Message state
   const [message, setMessage] = React.useState("");
-  const [manualPhone, setManualPhone] = React.useState("");
-
+  
   // Recipients state
   const [recipients, setRecipients] = React.useState<SelectedRecipient[]>([]);
 
   // Send state
   const [isSending, setIsSending] = React.useState(false);
   const [sendResult, setSendResult] = React.useState<"success" | "error" | null>(null);
+  
+  // Confirmation state
+  const [showConfirmDialog, setShowConfirmDialog] = React.useState(false);
+  const [expandedRecipientCount, setExpandedRecipientCount] = React.useState(0);
 
-  // Filters
-  const [contactSearch, setContactSearch] = React.useState("");
-  const [memberSearch, setMemberSearch] = React.useState("");
-  const [memberPartFilter, setMemberPartFilter] = React.useState<VoicePart | "all">("all");
-  const [memberRoleFilter, setMemberRoleFilter] = React.useState<MemberRole | "all">("all");
-  const [selectedGroupId, setSelectedGroupId] = React.useState<string | null>(null);
+  // Save Unknowns State
+  const [unknownNumbers, setUnknownNumbers] = React.useState<string[]>([]);
+  const [showSaveDialog, setShowSaveDialog] = React.useState(false);
+  const [saveName, setSaveName] = React.useState("");
+  const [currentSaveIndex, setCurrentSaveIndex] = React.useState(0);
+  const [isSavingContact, setIsSavingContact] = React.useState(false);
 
   // Data hooks
   const { contacts, isLoading: contactsLoading } = useContacts();
   const { groups, isLoading: groupsLoading } = useContactGroups();
   const { members, isLoading: membersLoading } = useMembersWithPhones();
-  const { contacts: groupContacts, isLoading: groupContactsLoading } = useGroupContacts(selectedGroupId);
-
-  // Filtered members based on search and filters (using useMemo to avoid infinite loops)
-  const filteredMembers = React.useMemo(() => {
-    const memberList = Array.isArray(members) ? members : [];
-    if (memberList.length === 0) return [];
-    let result = memberList;
-
-    // Apply local filters for part/role
-    if (memberPartFilter !== "all") {
-      result = result.filter((m) => m.member_part === memberPartFilter);
-    }
-
-    if (memberRoleFilter !== "all") {
-      result = result.filter((m) => m.role === memberRoleFilter);
-    }
-
-    // Apply local search filter
-    if (memberSearch) {
-      const search = memberSearch.toLowerCase();
-      result = result.filter(
-        (m) =>
-          m.full_name.toLowerCase().includes(search) ||
-          m.phone_number.includes(search)
-      );
-    }
-
-    return result;
-  }, [members, memberPartFilter, memberRoleFilter, memberSearch]);
-
-  // Filtered contacts
-  const filteredContacts = React.useMemo(() => {
-    const contactsList = Array.isArray(contacts) ? contacts : [];
-    if (contactsList.length === 0) return [];
-    if (!contactSearch) return contactsList;
-    const search = contactSearch.toLowerCase();
-    return contactsList.filter(
-      (c) =>
-        c.name.toLowerCase().includes(search) ||
-        c.phone_number.includes(search)
-    );
-  }, [contacts, contactSearch]);
 
   // Character count
   const charCount = message.length;
   const smsCount = Math.ceil(charCount / SMS_CHAR_LIMIT) || 1;
 
-  // Add recipient
-  const addRecipient = (recipient: SelectedRecipient) => {
-    // Check for duplicates by phone
-    if (recipients.some((r) => r.phone === recipient.phone)) {
-      toast.error("This recipient is already added");
-      return;
-    }
-    setRecipients((prev) => [...prev, recipient]);
-  };
+  // Helpers
+  const resolveRecipients = async () => {
+    const phoneSet = new Set<string>();
+    let count = 0;
 
-  // Remove recipient
-  const removeRecipient = (id: string) => {
-    setRecipients((prev) => prev.filter((r) => r.id !== id));
-  };
-
-  // Add manual phone
-  const handleAddManualPhone = () => {
-    if (!manualPhone.trim()) return;
-
-    // Basic validation - remove any non-numeric chars except +
-    const cleanPhone = manualPhone.replace(/[^0-9+]/g, "");
-    if (cleanPhone.length < 10) {
-      toast.error("Please enter a valid phone number");
-      return;
-    }
-
-    addRecipient({
-      id: `manual-${Date.now()}`,
-      name: cleanPhone,
-      phone: cleanPhone,
-      source: "manual",
-    });
-    setManualPhone("");
-  };
-
-  // Add contact
-  const handleAddContact = (contact: ContactType) => {
-    addRecipient({
-      id: `contact-${contact.id}`,
-      name: contact.name,
-      phone: contact.phone_number,
-      source: "contact",
-    });
-  };
-
-  // Add member
-  const handleAddMember = (member: MemberPhone) => {
-    addRecipient({
-      id: `member-${member.id}`,
-      name: member.full_name,
-      phone: member.phone_number,
-      source: "member",
-    });
-  };
-
-  // Add all from group
-  const handleAddGroup = () => {
-    const safeGroups = Array.isArray(groups) ? groups : [];
-    const safeContacts = Array.isArray(groupContacts) ? groupContacts : [];
-    
-    if (!selectedGroupId || safeContacts.length === 0) return;
-
-    const group = safeGroups.find((g) => g.id === selectedGroupId);
-    let addedCount = 0;
-
-    safeContacts.forEach((contact) => {
-      if (!recipients.some((r) => r.phone === contact.phone_number)) {
-        setRecipients((prev) => [
-          ...prev,
-          {
-            id: `group-${contact.id}`,
-            name: contact.name,
-            phone: contact.phone_number,
-            source: "group",
-          },
-        ]);
-        addedCount++;
+    for (const r of recipients) {
+      if (r.source === "group" && r.groupId) {
+        // We estimate count from metadata first for UI speed, 
+        // but for actual sending we'd resolve. 
+        // Here we are resolving for the CONFIRMATION dialog count.
+        // If getting contacts is heavy, we might use r.count (metadata) for estimation.
+        // But to be accurate lets rely on metadata for PRE-Check and resolve later?
+        // Actually, let's just use metadata count for the UI dialog to avoid pre-fetching everything.
+        count += (r.count || 0); // r.count should be populated from group.contact_count
+      } else {
+        phoneSet.add(r.phone);
+        count++;
       }
-    });
-
-    toast.success(`Added ${addedCount} contacts from "${group?.name}"`);
-    setSelectedGroupId(null);
+    }
+    // Note: This is an estimation because Groups might overlap with manual contacts.
+    // However, exact de-duplication happens at sending. 
+    return count;
   };
 
-  // Send SMS
-  const handleSend = async () => {
+  // Pre-Send Check
+  const handlePreSend = async () => {
     if (recipients.length === 0) {
       toast.error("Please add at least one recipient");
       return;
@@ -216,22 +106,78 @@ export default function ComposeSMS() {
       return;
     }
 
+    // Calculate effective count (approximate)
+    let totalEstimated = 0;
+    recipients.forEach(r => {
+      if (r.source === 'group') totalEstimated += (r.count || 0);
+      else totalEstimated += 1;
+    });
+
+    setExpandedRecipientCount(totalEstimated);
+
+    if (totalEstimated >= 5) {
+      setShowConfirmDialog(true);
+    } else {
+      executeSend();
+    }
+  };
+
+  // Execution
+  const executeSend = async () => {
     setIsSending(true);
     setSendResult(null);
+    setShowConfirmDialog(false);
 
     try {
-      const phoneNumbers = recipients.map((r) => r.phone);
-      await smsService.sendToRecipients(phoneNumbers, message);
+      // 1. Resolve all numbers
+      const finalPhones: string[] = [];
+      const manuals: string[] = [];
+
+      for (const r of recipients) {
+        if (r.source === "group" && r.groupId) {
+          // Fetch real contacts for group
+          try {
+             const groupContacts = await contactGroupsService.getGroupContacts(r.groupId);
+             finalPhones.push(...groupContacts.map(c => c.phone_number));
+          } catch (e) {
+             console.error(`Failed to fetch contacts for group ${r.groupId}`, e);
+             toast.error(`Failed to load contacts for group: ${r.name}`);
+             setIsSending(false);
+             return;
+          }
+        } else {
+          finalPhones.push(r.phone);
+          if (r.source === "manual") manuals.push(r.phone);
+        }
+      }
+
+      // 2. Send
+      if (finalPhones.length === 0) {
+        toast.error("No valid phone numbers found in selection.");
+        setIsSending(false);
+        return;
+      }
+
+      await smsService.sendToRecipients(finalPhones, message);
 
       setSendResult("success");
-      toast.success(`SMS sent to ${recipients.length} recipient(s)`);
+      toast.success(`SMS sent to ${finalPhones.length} recipient(s)`);
 
-      // Reset after success
-      setTimeout(() => {
-        setRecipients([]);
-        setMessage("");
-        setSendResult(null);
-      }, 2000);
+      // 3. Post-Send Actions (Save Unknowns warning)
+      if (manuals.length > 0) {
+         setUnknownNumbers(manuals);
+         setShowSaveDialog(true);
+         setCurrentSaveIndex(0);
+         setSaveName("");
+      } else {
+        // Reset only if no post-actions
+        setTimeout(() => {
+          setRecipients([]);
+          setMessage("");
+          setSendResult(null);
+        }, 2000);
+      }
+
     } catch (err) {
       setSendResult("error");
       const errorMessage = err instanceof Error ? err.message : "Failed to send SMS";
@@ -241,407 +187,209 @@ export default function ComposeSMS() {
     }
   };
 
+  const handleSaveContact = async () => {
+    if (!saveName.trim()) {
+      toast.error("Please enter a name");
+      return;
+    }
+    setIsSavingContact(true);
+    try {
+      await contactsService.createContact({
+        name: saveName,
+        phone_number: unknownNumbers[currentSaveIndex]
+      });
+      toast.success("Contact saved!");
+      
+      if (currentSaveIndex < unknownNumbers.length - 1) {
+        setCurrentSaveIndex(prev => prev + 1);
+        setSaveName("");
+      } else {
+        setShowSaveDialog(false);
+        // All done, clear form
+          setRecipients([]);
+          setMessage("");
+          setSendResult(null);
+      }
+    } catch (e) {
+      toast.error("Failed to save contact");
+    } finally {
+      setIsSavingContact(false);
+    }
+  };
+
+  const skipSaveContact = () => {
+     if (currentSaveIndex < unknownNumbers.length - 1) {
+        setCurrentSaveIndex(prev => prev + 1);
+        setSaveName("");
+      } else {
+        setShowSaveDialog(false);
+        setRecipients([]);
+        setMessage("");
+        setSendResult(null);
+      }
+  };
+
   return (
-    <div className="space-y-8">
+    <div className="max-w-2xl mx-auto space-y-8 py-4 px-4 md:px-0">
       {/* Header */}
-      <div className="pl-14 md:pl-0">
-        <h1 className="tracking-tight bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent">
-          Compose SMS
+      <div className="text-center md:text-left">
+        <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent">
+          New Message
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Send messages to individuals or groups
+        <p className="text-muted-foreground mt-2">
+          Send SMS to contacts, groups, or manual numbers.
         </p>
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-[1fr,400px]">
-        {/* Left: Compose Area */}
-        <div className="space-y-6">
-          {/* Recipients Display */}
-          <div className="rounded-2xl bg-gradient-to-br from-background/60 to-background/30 backdrop-blur-sm border border-border/40 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <Label className="text-sm font-medium">Recipients</Label>
-              <Badge variant="secondary" className="rounded-full">
-                {recipients.length} selected
-              </Badge>
-            </div>
-
-            {recipients.length === 0 ? (
-              <div className="text-sm text-muted-foreground py-8 text-center border-2 border-dashed border-border/40 rounded-xl">
-                Select recipients from the panel on the right
-              </div>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                <AnimatePresence>
-                  {recipients.slice(0, 10).map((recipient) => (
-                    <motion.div
-                      key={recipient.id}
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.8 }}
-                    >
-                      <Badge
-                        variant="secondary"
-                        className={cn(
-                          "rounded-full pl-3 pr-1.5 py-1.5 flex items-center gap-2",
-                          "bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20"
-                        )}
-                      >
-                        <span className="text-sm">{recipient.name}</span>
-                        <button
-                          onClick={() => removeRecipient(recipient.id)}
-                          className="h-5 w-5 rounded-full hover:bg-destructive/20 flex items-center justify-center transition-colors"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    </motion.div>
-                  ))}
-                  {recipients.length > 10 && (
-                    <Badge variant="outline" className="rounded-full">
-                      +{recipients.length - 10} more
-                    </Badge>
-                  )}
-                </AnimatePresence>
-              </div>
-            )}
+      <div className="space-y-6">
+        {/* Recipient Input */}
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">To:</Label>
+          <SmartRecipientInput
+            recipients={recipients}
+            setRecipients={setRecipients}
+            contacts={contacts || []}
+            groups={groups || []}
+            members={members || []}
+            isLoading={contactsLoading || groupsLoading || membersLoading}
+          />
+          <div className="flex justify-between px-1">
+             <p className="text-xs text-muted-foreground">
+               Type to search or enter a phone number directly.
+             </p>
+             {recipients.length > 0 && (
+               <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-auto p-0 text-xs text-destructive hover:bg-transparent"
+                onClick={() => setRecipients([])}
+               >
+                 Clear all
+               </Button>
+             )}
           </div>
+        </div>
 
-          {/* Message Input */}
-          <div className="rounded-2xl bg-gradient-to-br from-background/60 to-background/30 backdrop-blur-sm border border-border/40 p-6">
-            <Label htmlFor="message" className="text-sm font-medium">
+        {/* Message Input */}
+        <div className="space-y-2">
+           <Label htmlFor="message" className="text-sm font-medium">
               Message
-            </Label>
+           </Label>
+           <div className="relative">
             <Textarea
               id="message"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Type your message here..."
-              className="mt-3 min-h-[160px] rounded-xl border-border/60 resize-none text-base"
+              className="min-h-[200px] rounded-xl border-border/60 resize-none text-base p-4 shadow-sm focus-visible:ring-primary/20"
             />
-            <div className="flex items-center justify-between mt-3 text-sm">
-              <span className="text-muted-foreground">
-                {charCount} / {SMS_CHAR_LIMIT} characters
-              </span>
-              <Badge
-                variant={smsCount > 1 ? "secondary" : "outline"}
-                className="rounded-full"
-              >
-                {smsCount} SMS
-              </Badge>
+            <div className="absolute bottom-3 right-3 flex gap-2">
+               <Badge variant={smsCount > 1 ? "secondary" : "outline"} className="bg-background/80 backdrop-blur-sm">
+                  {charCount} / {SMS_CHAR_LIMIT} • {smsCount} SMS
+               </Badge>
             </div>
-          </div>
+           </div>
+        </div>
 
-          {/* Send Button */}
-          <motion.div whileTap={{ scale: 0.98 }}>
-            <Button
-              onClick={handleSend}
+        {/* Actions */}
+        <div className="pt-4">
+           <Button
+              onClick={handlePreSend}
               disabled={isSending || recipients.length === 0 || !message.trim()}
               className={cn(
-                "w-full h-14 text-lg font-medium rounded-2xl gap-3 shadow-lg transition-all duration-300",
+                "w-full h-12 text-lg font-medium rounded-xl shadow-lg transition-all duration-300",
                 sendResult === "success"
-                  ? "bg-gradient-to-br from-emerald-600 to-emerald-700 shadow-emerald-500/20"
-                  : sendResult === "error"
-                  ? "bg-gradient-to-br from-destructive to-destructive/90 shadow-destructive/20"
-                  : "bg-gradient-to-br from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-primary/20"
+                  ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20"
+                  : "bg-primary hover:bg-primary/90 shadow-primary/20"
               )}
             >
               {isSending ? (
                 <>
-                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
                   Sending...
                 </>
               ) : sendResult === "success" ? (
                 <>
-                  <CheckCircle className="h-5 w-5" />
+                  <CheckCircle className="h-5 w-5 mr-2" />
                   Sent Successfully!
-                </>
-              ) : sendResult === "error" ? (
-                <>
-                  <AlertCircle className="h-5 w-5" />
-                  Failed to Send
                 </>
               ) : (
                 <>
-                  <Send className="h-5 w-5" />
-                  Send SMS
+                  <Send className="h-5 w-5 mr-2" />
+                  Send Message
                 </>
               )}
             </Button>
-          </motion.div>
-        </div>
-
-        {/* Right: Recipient Selector */}
-        <div className="rounded-2xl bg-gradient-to-br from-background/60 to-background/30 backdrop-blur-sm border border-border/40 overflow-hidden">
-          <Tabs defaultValue="manual" className="h-full flex flex-col">
-            <TabsList className="w-full rounded-none border-b border-border/40 bg-transparent p-0 h-auto">
-              <TabsTrigger
-                value="manual"
-                className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-3"
-              >
-                <Keyboard className="h-4 w-4 mr-2" />
-                Manual
-              </TabsTrigger>
-              <TabsTrigger
-                value="contacts"
-                className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-3"
-              >
-                <Contact className="h-4 w-4 mr-2" />
-                Contacts
-              </TabsTrigger>
-              <TabsTrigger
-                value="groups"
-                className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-3"
-              >
-                <UsersRound className="h-4 w-4 mr-2" />
-                Groups
-              </TabsTrigger>
-              <TabsTrigger
-                value="members"
-                className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-3"
-              >
-                <Users className="h-4 w-4 mr-2" />
-                Members
-              </TabsTrigger>
-            </TabsList>
-
-            {/* Manual Entry */}
-            <TabsContent value="manual" className="flex-1 p-4">
-              <div className="space-y-4">
-                <Label className="text-sm font-medium">Enter Phone Number</Label>
-                <div className="flex gap-2">
-                  <Input
-                    value={manualPhone}
-                    onChange={(e) => setManualPhone(e.target.value)}
-                    placeholder="e.g., 233209335976"
-                    className="rounded-xl"
-                    onKeyDown={(e) => e.key === "Enter" && handleAddManualPhone()}
-                  />
-                  <Button
-                    onClick={handleAddManualPhone}
-                    variant="secondary"
-                    className="rounded-xl px-4"
-                  >
-                    Add
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Enter phone numbers in international format without spaces
-                </p>
-              </div>
-            </TabsContent>
-
-            {/* Contacts */}
-            <TabsContent value="contacts" className="flex-1 flex flex-col p-0">
-              <div className="p-4 border-b border-border/40">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    value={contactSearch}
-                    onChange={(e) => setContactSearch(e.target.value)}
-                    placeholder="Search contacts..."
-                    className="pl-9 rounded-xl"
-                  />
-                </div>
-              </div>
-              <ScrollArea className="flex-1 h-[400px]">
-                {contactsLoading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                  </div>
-                ) : filteredContacts.length === 0 ? (
-                  <div className="text-center py-12 text-sm text-muted-foreground">
-                    {(Array.isArray(contacts) ? contacts : []).length === 0 ? "No contacts yet" : "No contacts match your search"}
-                  </div>
-                ) : (
-                  <div className="divide-y divide-border/40">
-                    {filteredContacts.map((contact) => {
-                      const isSelected = recipients.some((r) => r.phone === contact.phone_number);
-                      return (
-                        <button
-                          key={contact.id}
-                          onClick={() => !isSelected && handleAddContact(contact)}
-                          disabled={isSelected}
-                          className={cn(
-                            "w-full flex items-center gap-3 p-4 text-left transition-colors",
-                            isSelected
-                              ? "bg-primary/5 opacity-60"
-                              : "hover:bg-accent/50"
-                          )}
-                        >
-                          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
-                            <Contact className="h-5 w-5 text-primary" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium text-sm truncate">{contact.name}</div>
-                            <div className="text-xs text-muted-foreground">{contact.phone_number}</div>
-                          </div>
-                          {isSelected && (
-                            <Badge variant="secondary" className="rounded-full text-xs">
-                              Added
-                            </Badge>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </ScrollArea>
-            </TabsContent>
-
-            {/* Groups */}
-            <TabsContent value="groups" className="flex-1 flex flex-col p-0">
-              <div className="p-4 border-b border-border/40">
-                <Label className="text-sm font-medium mb-2 block">Select a Group</Label>
-                <Select
-                  value={selectedGroupId || ""}
-                  onValueChange={(value) => setSelectedGroupId(value)}
-                >
-                  <SelectTrigger className="rounded-xl">
-                    <SelectValue placeholder="Choose a group..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(Array.isArray(groups) ? groups : []).map((group) => (
-                      <SelectItem key={group.id} value={group.id}>
-                        {group.name} ({group.contact_count} contacts)
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex-1 p-4">
-                {groupsLoading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                  </div>
-                ) : selectedGroupId ? (
-                  <div className="space-y-4">
-                    {groupContactsLoading ? (
-                      <div className="flex items-center justify-center py-8">
-                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                      </div>
-                    ) : (
-                      <>
-                        <div className="text-sm text-muted-foreground">
-                          This group has {(Array.isArray(groupContacts) ? groupContacts : []).length} contact(s)
-                        </div>
-                        <Button
-                          onClick={handleAddGroup}
-                          disabled={(Array.isArray(groupContacts) ? groupContacts : []).length === 0}
-                          className="w-full rounded-xl"
-                        >
-                          <UsersRound className="h-4 w-4 mr-2" />
-                          Add All Contacts from Group
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-center py-12 text-sm text-muted-foreground">
-                    Select a group to add all its contacts
-                  </div>
-                )}
-              </div>
-            </TabsContent>
-
-            {/* Members */}
-            <TabsContent value="members" className="flex-1 flex flex-col p-0">
-              <div className="p-4 border-b border-border/40 space-y-3">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    value={memberSearch}
-                    onChange={(e) => setMemberSearch(e.target.value)}
-                    placeholder="Search members..."
-                    className="pl-9 rounded-xl"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <Select
-                    value={memberPartFilter}
-                    onValueChange={(value) => setMemberPartFilter(value as VoicePart | "all")}
-                  >
-                    <SelectTrigger className="flex-1 rounded-xl h-9 text-sm">
-                      <SelectValue placeholder="Voice Part" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Parts</SelectItem>
-                      {(Object.keys(VOICE_PART_DISPLAY) as VoicePart[]).map((part) => (
-                        <SelectItem key={part} value={part}>
-                          {VOICE_PART_DISPLAY[part]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select
-                    value={memberRoleFilter}
-                    onValueChange={(value) => setMemberRoleFilter(value as MemberRole | "all")}
-                  >
-                    <SelectTrigger className="flex-1 rounded-xl h-9 text-sm">
-                      <SelectValue placeholder="Role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Roles</SelectItem>
-                      {(Object.keys(MEMBER_ROLE_DISPLAY) as MemberRole[]).map((role) => (
-                        <SelectItem key={role} value={role}>
-                          {MEMBER_ROLE_DISPLAY[role]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <ScrollArea className="flex-1 h-[350px]">
-                {membersLoading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                  </div>
-                ) : filteredMembers.length === 0 ? (
-                  <div className="text-center py-12 text-sm text-muted-foreground">
-                    No members match your filters
-                  </div>
-                ) : (
-                  <div className="divide-y divide-border/40">
-                    {filteredMembers.map((member) => {
-                      const isSelected = recipients.some((r) => r.phone === member.phone_number);
-                      return (
-                        <button
-                          key={member.id}
-                          onClick={() => !isSelected && handleAddMember(member)}
-                          disabled={isSelected}
-                          className={cn(
-                            "w-full flex items-center gap-3 p-4 text-left transition-colors",
-                            isSelected
-                              ? "bg-primary/5 opacity-60"
-                              : "hover:bg-accent/50"
-                          )}
-                        >
-                          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
-                            <Users className="h-5 w-5 text-primary" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium text-sm truncate">{member.full_name}</div>
-                            <div className="text-xs text-muted-foreground">
-                              {member.phone_number}
-                              {member.member_part && (
-                                <span className="ml-2">• {VOICE_PART_DISPLAY[member.member_part as VoicePart] || member.member_part}</span>
-                              )}
-                            </div>
-                          </div>
-                          {isSelected && (
-                            <Badge variant="secondary" className="rounded-full text-xs">
-                              Added
-                            </Badge>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </ScrollArea>
-            </TabsContent>
-          </Tabs>
         </div>
       </div>
+
+       {/* Confirmation Dialog */}
+      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Bulk Sending</DialogTitle>
+            <DialogDescription>
+              You are about to send to approximately <strong>{expandedRecipientCount}</strong> phone numbers.
+              <br />
+              Estimated cost: <strong>{expandedRecipientCount * smsCount} credits</strong>.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="bg-muted/50 p-4 rounded-lg text-sm border border-border/50">
+             <div className="flex items-start gap-2">
+               <AlertCircle className="h-4 w-4 text-amber-500 mt-0.5" />
+               <p>Duplicate numbers will be automatically removed before sending.</p>
+             </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowConfirmDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={executeSend} disabled={isSending}>
+              {isSending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
+              Confirm Send
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Save Unknown Numbers Dialog */}
+      <Dialog open={showSaveDialog} onOpenChange={(open) => !open && skipSaveContact()}>
+         <DialogContent>
+            <DialogHeader>
+               <DialogTitle>Save Unknown Number?</DialogTitle>
+               <DialogDescription>
+                  You sent a message to <strong>{unknownNumbers[currentSaveIndex]}</strong> which is not in your contacts.
+                  Would you like to save it?
+               </DialogDescription>
+            </DialogHeader>
+             <div className="py-4 space-y-4">
+                <div className="space-y-2">
+                   <Label>Contact Name</Label>
+                   <Input 
+                      value={saveName} 
+                      onChange={(e) => setSaveName(e.target.value)} 
+                      placeholder="e.g. John Doe"
+                      autoFocus
+                      onKeyDown={(e) => e.key === 'Enter' && handleSaveContact()}
+                   />
+                </div>
+                <div className="text-xs text-muted-foreground text-center">
+                   Number {currentSaveIndex + 1} of {unknownNumbers.length}
+                </div>
+             </div>
+             <DialogFooter className="gap-2 sm:gap-0">
+                <Button variant="ghost" onClick={skipSaveContact}>
+                   Skip
+                </Button>
+                <Button onClick={handleSaveContact} disabled={isSavingContact}>
+                   {isSavingContact ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                   Save Contact
+                </Button>
+             </DialogFooter>
+         </DialogContent>
+      </Dialog>
     </div>
   );
 }

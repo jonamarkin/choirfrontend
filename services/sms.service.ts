@@ -6,21 +6,21 @@ import {
   BatchSMSResponse,
 } from "@/types/sms";
 
-const BASE_PATH = "/core/sms";
+const BASE_PATH = "/communication/sms";
 
 export const smsService = {
   /**
    * Send SMS to a single recipient
    */
   async sendSingle(request: SingleSMSRequest): Promise<SingleSMSResponse> {
-    return apiClient.post<SingleSMSResponse>(`${BASE_PATH}/send-single`, request);
+    return apiClient.post<SingleSMSResponse>(`${BASE_PATH}/send-single/`, request);
   },
 
   /**
    * Send SMS to multiple recipients
    */
   async sendBatch(request: BatchSMSRequest): Promise<BatchSMSResponse> {
-    return apiClient.post<BatchSMSResponse>(`${BASE_PATH}/send-batch`, request);
+    return apiClient.post<BatchSMSResponse>(`${BASE_PATH}/send-batch/`, request);
   },
 
   /**

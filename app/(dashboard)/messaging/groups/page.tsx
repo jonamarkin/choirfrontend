@@ -281,9 +281,9 @@ export default function ContactGroupsPage() {
 
       {/* Stats */}
       <div className="grid gap-6 md:grid-cols-3">
-        <PremiumStatCard value={(groups || []).length} label="Total Groups" variant="primary" />
+        <PremiumStatCard value={(Array.isArray(groups) ? groups : []).length} label="Total Groups" variant="primary" />
         <PremiumStatCard value={totalContactsInGroups} label="Contacts in Groups" variant="secondary" />
-        <PremiumStatCard value={(contacts || []).length} label="Total Contacts" variant="gold" />
+        <PremiumStatCard value={(Array.isArray(contacts) ? contacts : []).length} label="Total Contacts" variant="gold" />
       </div>
 
       {/* Search */}
@@ -313,7 +313,7 @@ export default function ContactGroupsPage() {
               {paginatedGroups.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center py-12 text-muted-foreground">
-                    {(groups || []).length === 0 ? "No groups yet. Create your first group!" : "No groups match your search"}
+                    {(Array.isArray(groups) ? groups : []).length === 0 ? "No groups yet. Create your first group!" : "No groups match your search"}
                   </TableCell>
                 </TableRow>
               ) : (
