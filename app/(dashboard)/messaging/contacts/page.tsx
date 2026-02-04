@@ -97,9 +97,11 @@ export default function ContactsPage() {
 
   // Filter contacts
   const filteredContacts = React.useMemo(() => {
-    if (!searchQuery) return contacts;
+    const contactsList = Array.isArray(contacts) ? contacts : [];
+    if (contactsList.length === 0) return [];
+    if (!searchQuery) return contactsList;
     const search = searchQuery.toLowerCase();
-    return contacts.filter(
+    return contactsList.filter(
       (c) =>
         c.name.toLowerCase().includes(search) ||
         c.phone_number.includes(search)
@@ -261,10 +263,10 @@ export default function ContactsPage() {
 
       {/* Stats */}
       <div className="grid gap-6 md:grid-cols-3">
-        <PremiumStatCard value={contacts.length} label="Total Contacts" variant="primary" />
-        <PremiumStatCard value={groups.length} label="Groups" variant="secondary" />
+        <PremiumStatCard value={(contacts || []).length} label="Total Contacts" variant="primary" />
+        <PremiumStatCard value={(groups || []).length} label="Groups" variant="secondary" />
         <PremiumStatCard
-          value={contacts.filter((c) => c.groups.length > 0).length}
+          value={(contacts || []).filter((c) => c.groups.length > 0).length}
           label="In Groups"
           variant="gold"
         />
@@ -297,7 +299,7 @@ export default function ContactsPage() {
               {paginatedContacts.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center py-12 text-muted-foreground">
-                    {contacts.length === 0 ? "No contacts yet. Add your first contact!" : "No contacts match your search"}
+                    {(contacts || []).length === 0 ? "No contacts yet. Add your first contact!" : "No contacts match your search"}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -497,7 +499,7 @@ export default function ContactsPage() {
                   <SelectValue placeholder="Select group..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {groups.map((g) => (
+                  {(groups || []).map((g) => (
                     <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
                   ))}
                 </SelectContent>
@@ -540,7 +542,7 @@ export default function ContactsPage() {
                   <SelectValue placeholder="Select group..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {groups.map((g) => (
+                  {(groups || []).map((g) => (
                     <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
                   ))}
                 </SelectContent>

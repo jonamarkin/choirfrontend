@@ -13,7 +13,6 @@ import {
   CheckCircle,
   AlertCircle,
   Search,
-  Filter,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -24,7 +23,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -32,7 +30,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 import { smsService } from "@/services/sms.service";
@@ -51,7 +48,6 @@ import {
   Contact as ContactType,
   MemberPhone,
 } from "@/types/sms";
-import { membersSmsService } from "@/services/members-sms.service";
 
 const SMS_CHAR_LIMIT = 160;
 
@@ -80,55 +76,41 @@ export default function ComposeSMS() {
   const { members, isLoading: membersLoading } = useMembersWithPhones();
   const { contacts: groupContacts, isLoading: groupContactsLoading } = useGroupContacts(selectedGroupId);
 
-  // Filtered members based on search and filters
-  const [filteredMembers, setFilteredMembers] = React.useState<MemberPhone[]>([]);
-  const [isFilteringMembers, setIsFilteringMembers] = React.useState(false);
+  // Filtered members based on search and filters (using useMemo to avoid infinite loops)
+  const filteredMembers = React.useMemo(() => {
+    const memberList = Array.isArray(members) ? members : [];
+    if (memberList.length === 0) return [];
+    let result = memberList;
 
-  // Filter members
-  React.useEffect(() => {
-    const filterMembers = async () => {
-      setIsFilteringMembers(true);
-      let result = members;
+    // Apply local filters for part/role
+    if (memberPartFilter !== "all") {
+      result = result.filter((m) => m.member_part === memberPartFilter);
+    }
 
-      // Apply API filters for part/role
-      if (memberPartFilter !== "all") {
-        try {
-          result = await membersSmsService.getMembersByPart(memberPartFilter);
-        } catch {
-          result = members.filter((m) => m.member_part === memberPartFilter);
-        }
-      }
+    if (memberRoleFilter !== "all") {
+      result = result.filter((m) => m.role === memberRoleFilter);
+    }
 
-      if (memberRoleFilter !== "all") {
-        try {
-          result = await membersSmsService.getMembersByRole(memberRoleFilter);
-        } catch {
-          result = members.filter((m) => m.role === memberRoleFilter);
-        }
-      }
+    // Apply local search filter
+    if (memberSearch) {
+      const search = memberSearch.toLowerCase();
+      result = result.filter(
+        (m) =>
+          m.full_name.toLowerCase().includes(search) ||
+          m.phone_number.includes(search)
+      );
+    }
 
-      // Apply local search filter
-      if (memberSearch) {
-        const search = memberSearch.toLowerCase();
-        result = result.filter(
-          (m) =>
-            m.full_name.toLowerCase().includes(search) ||
-            m.phone_number.includes(search)
-        );
-      }
-
-      setFilteredMembers(result);
-      setIsFilteringMembers(false);
-    };
-
-    filterMembers();
+    return result;
   }, [members, memberPartFilter, memberRoleFilter, memberSearch]);
 
   // Filtered contacts
   const filteredContacts = React.useMemo(() => {
-    if (!contactSearch) return contacts;
+    const contactsList = Array.isArray(contacts) ? contacts : [];
+    if (contactsList.length === 0) return [];
+    if (!contactSearch) return contactsList;
     const search = contactSearch.toLowerCase();
-    return contacts.filter(
+    return contactsList.filter(
       (c) =>
         c.name.toLowerCase().includes(search) ||
         c.phone_number.includes(search)
@@ -196,12 +178,15 @@ export default function ComposeSMS() {
 
   // Add all from group
   const handleAddGroup = () => {
-    if (!selectedGroupId || groupContacts.length === 0) return;
+    const safeGroups = Array.isArray(groups) ? groups : [];
+    const safeContacts = Array.isArray(groupContacts) ? groupContacts : [];
+    
+    if (!selectedGroupId || safeContacts.length === 0) return;
 
-    const group = groups.find((g) => g.id === selectedGroupId);
+    const group = safeGroups.find((g) => g.id === selectedGroupId);
     let addedCount = 0;
 
-    groupContacts.forEach((contact) => {
+    safeContacts.forEach((contact) => {
       if (!recipients.some((r) => r.phone === contact.phone_number)) {
         setRecipients((prev) => [
           ...prev,
@@ -465,7 +450,7 @@ export default function ComposeSMS() {
                   </div>
                 ) : filteredContacts.length === 0 ? (
                   <div className="text-center py-12 text-sm text-muted-foreground">
-                    {contacts.length === 0 ? "No contacts yet" : "No contacts match your search"}
+                    {(Array.isArray(contacts) ? contacts : []).length === 0 ? "No contacts yet" : "No contacts match your search"}
                   </div>
                 ) : (
                   <div className="divide-y divide-border/40">
@@ -515,7 +500,7 @@ export default function ComposeSMS() {
                     <SelectValue placeholder="Choose a group..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {groups.map((group) => (
+                    {(Array.isArray(groups) ? groups : []).map((group) => (
                       <SelectItem key={group.id} value={group.id}>
                         {group.name} ({group.contact_count} contacts)
                       </SelectItem>
@@ -537,11 +522,11 @@ export default function ComposeSMS() {
                     ) : (
                       <>
                         <div className="text-sm text-muted-foreground">
-                          This group has {groupContacts.length} contact(s)
+                          This group has {(Array.isArray(groupContacts) ? groupContacts : []).length} contact(s)
                         </div>
                         <Button
                           onClick={handleAddGroup}
-                          disabled={groupContacts.length === 0}
+                          disabled={(Array.isArray(groupContacts) ? groupContacts : []).length === 0}
                           className="w-full rounded-xl"
                         >
                           <UsersRound className="h-4 w-4 mr-2" />
@@ -606,7 +591,7 @@ export default function ComposeSMS() {
                 </div>
               </div>
               <ScrollArea className="flex-1 h-[350px]">
-                {membersLoading || isFilteringMembers ? (
+                {membersLoading ? (
                   <div className="flex items-center justify-center py-12">
                     <Loader2 className="h-6 w-6 animate-spin text-primary" />
                   </div>

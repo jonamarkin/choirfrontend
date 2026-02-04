@@ -95,9 +95,11 @@ export default function ContactGroupsPage() {
 
   // Filter groups
   const filteredGroups = React.useMemo(() => {
-    if (!searchQuery) return groups;
+    const groupList = Array.isArray(groups) ? groups : [];
+    if (groupList.length === 0) return [];
+    if (!searchQuery) return groupList;
     const search = searchQuery.toLowerCase();
-    return groups.filter(
+    return groupList.filter(
       (g) =>
         g.name.toLowerCase().includes(search) ||
         g.description.toLowerCase().includes(search)
@@ -113,8 +115,11 @@ export default function ContactGroupsPage() {
 
   // Available contacts (not in group)
   const availableContacts = React.useMemo(() => {
-    const groupContactIds = new Set(groupContacts.map((c) => c.id));
-    let available = contacts.filter((c) => !groupContactIds.has(c.id));
+    const safeGroupContacts = Array.isArray(groupContacts) ? groupContacts : [];
+    const safeContacts = Array.isArray(contacts) ? contacts : [];
+    
+    const groupContactIds = new Set(safeGroupContacts.map((c) => c.id));
+    let available = safeContacts.filter((c) => !groupContactIds.has(c.id));
     if (contactSearch) {
       const search = contactSearch.toLowerCase();
       available = available.filter(
@@ -126,7 +131,7 @@ export default function ContactGroupsPage() {
 
   // Total contacts across all groups
   const totalContactsInGroups = React.useMemo(() => {
-    return groups.reduce((sum, g) => sum + g.contact_count, 0);
+    return (Array.isArray(groups) ? groups : []).reduce((sum, g) => sum + g.contact_count, 0);
   }, [groups]);
 
   // Handlers
@@ -276,9 +281,9 @@ export default function ContactGroupsPage() {
 
       {/* Stats */}
       <div className="grid gap-6 md:grid-cols-3">
-        <PremiumStatCard value={groups.length} label="Total Groups" variant="primary" />
+        <PremiumStatCard value={(groups || []).length} label="Total Groups" variant="primary" />
         <PremiumStatCard value={totalContactsInGroups} label="Contacts in Groups" variant="secondary" />
-        <PremiumStatCard value={contacts.length} label="Total Contacts" variant="gold" />
+        <PremiumStatCard value={(contacts || []).length} label="Total Contacts" variant="gold" />
       </div>
 
       {/* Search */}
@@ -308,7 +313,7 @@ export default function ContactGroupsPage() {
               {paginatedGroups.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center py-12 text-muted-foreground">
-                    {groups.length === 0 ? "No groups yet. Create your first group!" : "No groups match your search"}
+                    {(groups || []).length === 0 ? "No groups yet. Create your first group!" : "No groups match your search"}
                   </TableCell>
                 </TableRow>
               ) : (
