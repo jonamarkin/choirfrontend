@@ -37,6 +37,7 @@ import {
 } from "@/hooks/useSMS";
 import { SelectedRecipient } from "@/types/sms";
 import { SmartRecipientInput } from "./smart-recipient-input";
+import { RecipientPicker } from "./recipient-picker";
 
 const SMS_CHAR_LIMIT = 160;
 
@@ -244,7 +245,29 @@ export default function ComposeSMS() {
       <div className="space-y-6">
         {/* Recipient Input */}
         <div className="space-y-2">
-          <Label className="text-sm font-medium">To:</Label>
+          <div className="flex justify-between items-end">
+            <Label className="text-sm font-medium">To:</Label>
+            <RecipientPicker 
+              contacts={contacts || []}
+              groups={groups || []}
+              members={members || []}
+              onSelect={(newRecipients) => {
+                setRecipients(prev => {
+                  const merged = [...prev, ...newRecipients];
+                  const unique = [];
+                  const ids = new Set();
+                  for (const r of merged) {
+                    if (!ids.has(r.id)) {
+                      unique.push(r);
+                      ids.add(r.id);
+                    }
+                  }
+                  return unique;
+                });
+              }}
+              alreadySelectedPhones={recipients.map(r => r.phone)}
+            />
+          </div>
           <SmartRecipientInput
             recipients={recipients}
             setRecipients={setRecipients}
@@ -335,11 +358,22 @@ export default function ComposeSMS() {
             </DialogDescription>
           </DialogHeader>
           
-          <div className="bg-muted/50 p-4 rounded-lg text-sm border border-border/50">
-             <div className="flex items-start gap-2">
-               <AlertCircle className="h-4 w-4 text-amber-500 mt-0.5" />
-               <p>Duplicate numbers will be automatically removed before sending.</p>
-             </div>
+          <div className="space-y-4">
+            <div className="bg-muted/50 p-4 rounded-xl border border-border/50 space-y-2">
+               <Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Message Preview</Label>
+               <p className="text-sm line-clamp-4 italic">"{message}"</p>
+               <div className="flex justify-between items-center pt-2 border-t border-border/20">
+                  <span className="text-[10px] text-muted-foreground">{message.length} characters</span>
+                  <Badge variant="outline" className="text-[10px] h-4 font-normal">{smsCount} SMS units</Badge>
+               </div>
+            </div>
+
+            <div className="bg-amber-500/10 p-3 rounded-lg text-[13px] border border-amber-500/20 text-amber-600 dark:text-amber-400">
+               <div className="flex items-start gap-2">
+                 <AlertCircle className="h-4 w-4 mt-0.5" />
+                 <p>Duplicate numbers will be automatically removed before sending.</p>
+               </div>
+            </div>
           </div>
 
           <DialogFooter>

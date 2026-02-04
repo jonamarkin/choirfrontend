@@ -40,11 +40,20 @@ export function SmartRecipientInput({
   const inputRef = React.useRef<HTMLInputElement>(null);
 
   const handleSelect = (recipient: SelectedRecipient) => {
-    // Check for duplicates
-    if (recipients.some((r) => r.phone === recipient.phone)) {
+    // Check for direct ID duplicates
+    if (recipients.some((r) => r.id === recipient.id)) {
       setQuery("");
       return;
     }
+
+    // For individual recipients (contacts, members, manual), check for phone duplicates
+    if (recipient.source !== "group") {
+      if (recipients.some((r) => r.phone === recipient.phone)) {
+        setQuery("");
+        return;
+      }
+    }
+
     setRecipients((prev) => [...prev, recipient]);
     setQuery("");
   };
@@ -179,12 +188,28 @@ export function SmartRecipientInput({
                       {safeMembers.map((member) => (
                         <CommandItem
                           key={member.id}
+                          // Include role and part in the searchable value
+                          value={`${member.full_name} ${member.member_part || ''} ${member.role || ''} ${member.phone_number}`}
                           onSelect={() => handleSelect({ id: `member-${member.id}`, name: member.full_name, phone: member.phone_number, source: 'member' })}
                           className="cursor-pointer"
                         >
                           <Users className="mr-2 h-4 w-4" />
-                          <span>{member.full_name}</span>
-                          <span className="ml-auto text-xs text-muted-foreground">
+                          <div className="flex flex-col">
+                            <span>{member.full_name}</span>
+                            <div className="flex gap-1 mt-0.5">
+                               {member.member_part && (
+                                 <Badge variant="outline" className="text-[10px] px-1 h-4 font-normal">
+                                   {member.member_part}
+                                 </Badge>
+                               )}
+                               {member.role && member.role !== 'member' && (
+                                 <Badge variant="secondary" className="text-[10px] px-1 h-4 font-normal">
+                                   {member.role.replace('_', ' ')}
+                                 </Badge>
+                               )}
+                            </div>
+                          </div>
+                          <span className="ml-auto text-xs text-muted-foreground self-start mt-0.5">
                             {member.phone_number}
                           </span>
                         </CommandItem>
