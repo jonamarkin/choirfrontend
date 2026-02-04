@@ -128,7 +128,7 @@ export function SmartRecipientInput({
           />
           <div className="relative mt-2">
             {query && (
-              <div className="absolute top-0 w-full rounded-xl border bg-popover/95 backdrop-blur-sm text-popover-foreground shadow-lg overflow-hidden z-50 animate-in fade-in-0 zoom-in-95">
+              <div className="absolute top-0 w-full rounded-xl border bg-popover text-popover-foreground shadow-xl overflow-hidden z-[100] animate-in fade-in-0 zoom-in-95">
                 <CommandList>
                   <CommandEmpty className="py-6 text-center text-sm text-muted-foreground">
                     {isLikelyPhone ? (
@@ -152,7 +152,14 @@ export function SmartRecipientInput({
                       {safeGroups.map((group) => (
                         <CommandItem
                           key={group.id}
-                          onSelect={() => handleSelect({ id: `group-${group.id}`, name: group.name, phone: 'Group', source: 'group', groupId: group.id })} // Note: phone: 'Group' is temporary, actual logic handles group expansion later or we treat group as single entity first
+                          onSelect={() => handleSelect({ 
+                            id: `group-${group.id}`, 
+                            name: group.name, 
+                            phone: 'Group', 
+                            source: 'group', 
+                            groupId: group.id,
+                            count: group.contact_count 
+                          })} 
                           className="cursor-pointer"
                         >
                           <UsersRound className="mr-2 h-4 w-4" />

@@ -51,18 +51,25 @@ import {
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { PremiumStatCard } from "@/components/premium-stat-card";
 import { tableContainerStyle } from "@/utils/premium-styles";
 
-import { useContactGroups, useContacts, useGroupContacts } from "@/hooks/useSMS";
+import { useContactGroups, useContacts, useGroupContacts, useMembersWithPhones } from "@/hooks/useSMS";
 import { contactGroupsService } from "@/services/contact-groups.service";
-import { ContactGroup, Contact } from "@/types/sms";
+import { contactsService } from "@/services/contacts.service";
+import { ContactGroup, Contact, MemberPhone } from "@/types/sms";
 
 export default function ContactGroupsPage() {
   // Data
   const { groups, isLoading, mutate } = useContactGroups();
   const { contacts } = useContacts();
+  const { members } = useMembersWithPhones();
 
   // UI State
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -83,11 +90,13 @@ export default function ContactGroupsPage() {
   const [addForm, setAddForm] = React.useState({ name: "", description: "" });
   const [isAdding, setIsAdding] = React.useState(false);
 
-  // Add contacts dialog
+  // Add contacts/members dialog
   const [showAddContactsDialog, setShowAddContactsDialog] = React.useState(false);
   const [selectedContactIds, setSelectedContactIds] = React.useState<string[]>([]);
+  const [selectedMemberIds, setSelectedMemberIds] = React.useState<string[]>([]);
   const [isAddingContacts, setIsAddingContacts] = React.useState(false);
   const [contactSearch, setContactSearch] = React.useState("");
+  const [memberSearch, setMemberSearch] = React.useState("");
 
   // Delete confirmation
   const [deleteId, setDeleteId] = React.useState<string | null>(null);
@@ -128,6 +137,26 @@ export default function ContactGroupsPage() {
     }
     return available;
   }, [contacts, groupContacts, contactSearch]);
+
+  // Available members (not in group - logic: check if member.phone_number is in any of groupContacts.phone_number)
+  const availableMembers = React.useMemo(() => {
+    const safeGroupContacts = Array.isArray(groupContacts) ? groupContacts : [];
+    const safeMembers = Array.isArray(members) ? members : [];
+    
+    const groupPhones = new Set(safeGroupContacts.map((c) => c.phone_number));
+    let available = safeMembers.filter((m) => !groupPhones.has(m.phone_number));
+    if (memberSearch) {
+      const search = memberSearch.toLowerCase();
+      available = available.filter(
+        (m) => 
+          m.full_name.toLowerCase().includes(search) || 
+          m.phone_number.includes(search) ||
+          (m.member_part || "").toLowerCase().includes(search) ||
+          (m.role || "").toLowerCase().includes(search)
+      );
+    }
+    return available;
+  }, [members, groupContacts, memberSearch]);
 
   // Total contacts across all groups
   const totalContactsInGroups = React.useMemo(() => {
@@ -205,19 +234,38 @@ export default function ContactGroupsPage() {
   };
 
   const handleAddContactsToGroup = async () => {
-    if (!selectedGroup || selectedContactIds.length === 0) return;
+    if (!selectedGroup) return;
+    if (selectedContactIds.length === 0 && selectedMemberIds.length === 0) return;
 
     setIsAddingContacts(true);
     try {
-      await contactGroupsService.addContacts(selectedGroup.id, {
-        contact_ids: selectedContactIds,
-      });
+      // 1. Add existing contacts
+      if (selectedContactIds.length > 0) {
+        await contactGroupsService.addContacts(selectedGroup.id, {
+          contact_ids: selectedContactIds,
+        });
+      }
+
+      // 2. Add members (via bulk-create which links to group)
+      if (selectedMemberIds.length > 0) {
+        const selectedMembers = (members || []).filter(m => selectedMemberIds.includes(m.id.toString()));
+        await contactsService.bulkCreate({
+          contacts: selectedMembers.map(m => ({
+            name: m.full_name,
+            phone_number: m.phone_number
+          })),
+          group_id: selectedGroup.id
+        });
+      }
+
       mutateGroupContacts();
       mutate();
       setShowAddContactsDialog(false);
       setSelectedContactIds([]);
+      setSelectedMemberIds([]);
       setContactSearch("");
-      toast.success(`Added ${selectedContactIds.length} contact(s) to group`);
+      setMemberSearch("");
+      toast.success(`Successfully updated group members`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to add contacts");
     } finally {
@@ -246,6 +294,14 @@ export default function ContactGroupsPage() {
       prev.includes(contactId)
         ? prev.filter((id) => id !== contactId)
         : [...prev, contactId]
+    );
+  };
+
+  const toggleMemberSelection = (memberId: string) => {
+    setSelectedMemberIds((prev) =>
+      prev.includes(memberId)
+        ? prev.filter((id) => id !== memberId)
+        : [...prev, memberId]
     );
   };
 
@@ -589,78 +645,151 @@ export default function ContactGroupsPage() {
 
       {/* Add Contacts to Group Dialog */}
       <Dialog open={showAddContactsDialog} onOpenChange={setShowAddContactsDialog}>
-        <DialogContent className="sm:max-w-[450px]">
-          <DialogHeader>
-            <DialogTitle>Add Contacts to Group</DialogTitle>
-            <DialogDescription>Select contacts to add to "{selectedGroup?.name}"</DialogDescription>
+        <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-6 pb-4 bg-muted/20">
+            <DialogTitle>Add to Group</DialogTitle>
+            <DialogDescription>Select contacts or members to add to "{selectedGroup?.name}"</DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <div className="relative mb-4">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                value={contactSearch}
-                onChange={(e) => setContactSearch(e.target.value)}
-                placeholder="Search contacts..."
-                className="pl-9 rounded-xl"
-              />
-            </div>
-            <ScrollArea className="h-[300px] border rounded-xl">
-              {availableContacts.length === 0 ? (
-                <div className="text-center py-12 text-sm text-muted-foreground">
-                  {contacts.length === groupContacts.length
-                    ? "All contacts are already in this group"
-                    : "No contacts match your search"}
+
+          <Tabs defaultValue="contacts" className="w-full">
+            <TabsList className="w-full justify-start rounded-none border-b bg-transparent px-6 h-12 gap-6">
+              <TabsTrigger value="contacts" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-0 h-12 font-medium">
+                Contacts
+              </TabsTrigger>
+              <TabsTrigger value="members" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-0 h-12 font-medium">
+                Members
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="contacts" className="m-0">
+              <div className="p-4">
+                <div className="relative mb-4">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    value={contactSearch}
+                    onChange={(e) => setContactSearch(e.target.value)}
+                    placeholder="Search contacts..."
+                    className="pl-9 rounded-xl"
+                  />
                 </div>
-              ) : (
-                <div className="divide-y divide-border/40">
-                  {availableContacts.map((contact) => (
-                    <label
-                      key={contact.id}
-                      className="flex items-center gap-3 p-4 cursor-pointer hover:bg-accent/50 transition-colors"
-                    >
-                      <Checkbox
-                        checked={selectedContactIds.includes(contact.id)}
-                        onCheckedChange={() => toggleContactSelection(contact.id)}
-                      />
-                      <div className="flex-1">
-                        <div className="text-sm font-medium">{contact.name}</div>
-                        <div className="text-xs text-muted-foreground">{contact.phone_number}</div>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-              )}
-            </ScrollArea>
-            {selectedContactIds.length > 0 && (
-              <div className="mt-3 text-sm text-muted-foreground">
-                {selectedContactIds.length} contact(s) selected
+                <ScrollArea className="h-[300px] border rounded-xl">
+                  {availableContacts.length === 0 ? (
+                    <div className="text-center py-12 text-sm text-muted-foreground">
+                      {contacts.length === (Array.isArray(groupContacts) ? groupContacts.length : 0)
+                        ? "All contacts are already in this group"
+                        : "No contacts match your search"}
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-border/40">
+                      {availableContacts.map((contact) => (
+                        <label
+                          key={contact.id}
+                          className="flex items-center gap-3 p-4 cursor-pointer hover:bg-accent/50 transition-colors"
+                        >
+                          <Checkbox
+                            checked={selectedContactIds.includes(contact.id)}
+                            onCheckedChange={() => toggleContactSelection(contact.id)}
+                          />
+                          <div className="flex-1">
+                            <div className="text-sm font-medium">{contact.name}</div>
+                            <div className="text-xs text-muted-foreground">{contact.phone_number}</div>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </ScrollArea>
               </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowAddContactsDialog(false);
-                setSelectedContactIds([]);
-                setContactSearch("");
-              }}
-              className="rounded-xl"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleAddContactsToGroup}
-              disabled={isAddingContacts || selectedContactIds.length === 0}
-              className="rounded-xl"
-            >
-              {isAddingContacts ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : (
-                <UserPlus className="h-4 w-4 mr-2" />
+            </TabsContent>
+
+            <TabsContent value="members" className="m-0">
+              <div className="p-4">
+                <div className="relative mb-4">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    value={memberSearch}
+                    onChange={(e) => setMemberSearch(e.target.value)}
+                    placeholder="Search organization members..."
+                    className="pl-9 rounded-xl"
+                  />
+                </div>
+                <ScrollArea className="h-[300px] border rounded-xl">
+                  {availableMembers.length === 0 ? (
+                    <div className="text-center py-12 text-sm text-muted-foreground">
+                      {members.length === 0
+                        ? "No members found"
+                        : "All members are already in this group"}
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-border/40">
+                      {availableMembers.map((member) => (
+                        <label
+                          key={member.id}
+                          className="flex items-center gap-3 p-4 cursor-pointer hover:bg-accent/50 transition-colors"
+                        >
+                          <Checkbox
+                            checked={selectedMemberIds.includes(member.id.toString())}
+                            onCheckedChange={() => toggleMemberSelection(member.id.toString())}
+                          />
+                          <div className="flex-1">
+                            <div className="text-sm font-medium">{member.full_name}</div>
+                            <div className="flex gap-1 mt-0.5">
+                              {member.member_part && (
+                                <Badge variant="outline" className="text-[10px] px-1 h-4 font-normal">
+                                  {member.member_part}
+                                </Badge>
+                              )}
+                              {member.role && member.role !== 'member' && (
+                                <Badge variant="secondary" className="text-[10px] px-1 h-4 font-normal">
+                                  {member.role.replace('_', ' ')}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </ScrollArea>
+              </div>
+            </TabsContent>
+          </Tabs>
+
+          <DialogFooter className="px-6 py-4 bg-muted/20">
+            <div className="flex-1 text-xs text-muted-foreground py-2">
+              {(selectedContactIds.length > 0 || selectedMemberIds.length > 0) && (
+                <span>
+                  {selectedContactIds.length} contact(s), {selectedMemberIds.length} member(s) selected
+                </span>
               )}
-              {isAddingContacts ? "Adding..." : `Add ${selectedContactIds.length} Contact(s)`}
-            </Button>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowAddContactsDialog(false);
+                  setSelectedContactIds([]);
+                  setSelectedMemberIds([]);
+                  setContactSearch("");
+                  setMemberSearch("");
+                }}
+                className="rounded-xl"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleAddContactsToGroup}
+                disabled={isAddingContacts || (selectedContactIds.length === 0 && selectedMemberIds.length === 0)}
+                className="rounded-xl"
+              >
+                {isAddingContacts ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <UserPlus className="h-4 w-4 mr-2" />
+                )}
+                {isAddingContacts ? "Adding..." : `Add Selected`}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
