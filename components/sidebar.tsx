@@ -17,6 +17,10 @@ import {
   Home,
   X,
   User,
+  MessageSquare,
+  Send,
+  Contact,
+  UsersRound,
 } from "lucide-react";
 
 import { useAuth } from "@/components/providers/auth-provider";
@@ -37,6 +41,15 @@ const navItems = [
   { href: "/attendance", label: "Attendance", icon: CalendarDays },
   { href: "/finance", label: "Finance", icon: Wallet },
   { href: "/repertoire", label: "Repertoire", icon: Music },
+  {
+    label: "Messaging",
+    icon: MessageSquare,
+    subItems: [
+      { href: "/messaging/compose", label: "Compose SMS", icon: Send },
+      { href: "/messaging/contacts", label: "Contacts", icon: Contact },
+      { href: "/messaging/groups", label: "Contact Groups", icon: UsersRound },
+    ],
+  },
   {
     label: "Settings",
     icon: Settings,
