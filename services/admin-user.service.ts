@@ -1,6 +1,7 @@
 import { apiClient } from "@/lib/api-client";
 import {
   AdminUser,
+  AdminUserDetail,
   AdminUserFilters,
   AdminUserUpdateRequest,
   PaginatedResponse,
@@ -23,16 +24,17 @@ export const adminUserService = {
     if (filters?.is_active !== undefined) params.is_active = filters.is_active;
     if (filters?.role) params.role = filters.role;
     if (filters?.member_part) params.member_part = filters.member_part;
+    if (filters?.ordering) params.ordering = filters.ordering;
     if (filters?.page) params.page = filters.page;
 
     return apiClient.get<PaginatedResponse<AdminUser>>(BASE_PATH, { params });
   },
 
   /**
-   * Get a single user by ID
+   * Get a single user by ID (returns full detail)
    */
-  async getUser(id: string): Promise<AdminUser> {
-    return apiClient.get<AdminUser>(`${BASE_PATH}/${id}`);
+  async getUser(id: string): Promise<AdminUserDetail> {
+    return apiClient.get<AdminUserDetail>(`${BASE_PATH}/${id}`);
   },
 
   /**
@@ -41,8 +43,8 @@ export const adminUserService = {
   async updateUser(
     id: string,
     data: AdminUserUpdateRequest
-  ): Promise<AdminUser> {
-    return apiClient.patch<AdminUser>(`${BASE_PATH}/${id}`, data);
+  ): Promise<AdminUserDetail> {
+    return apiClient.patch<AdminUserDetail>(`${BASE_PATH}/${id}`, data);
   },
 
   /**
@@ -50,7 +52,7 @@ export const adminUserService = {
    */
   async approveUser(id: string): Promise<{ message: string; user: AdminUser }> {
     return apiClient.post<{ message: string; user: AdminUser }>(
-      `${BASE_PATH}/${id}/approve`,
+      `${BASE_PATH}/${id}/approve/`,
       {}
     );
   },
@@ -62,7 +64,7 @@ export const adminUserService = {
     id: string
   ): Promise<{ message: string; user: AdminUser }> {
     return apiClient.post<{ message: string; user: AdminUser }>(
-      `${BASE_PATH}/${id}/activate`,
+      `${BASE_PATH}/${id}/activate/`,
       {}
     );
   },
@@ -74,7 +76,7 @@ export const adminUserService = {
     id: string
   ): Promise<{ message: string; user: AdminUser }> {
     return apiClient.post<{ message: string; user: AdminUser }>(
-      `${BASE_PATH}/${id}/deactivate`,
+      `${BASE_PATH}/${id}/deactivate/`,
       {}
     );
   },

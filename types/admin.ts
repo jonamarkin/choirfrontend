@@ -36,6 +36,23 @@ export interface AdminUser {
   last_login_at: string | null;
 }
 
+export interface AdminUserDetail extends AdminUser {
+  profile_picture: string | null;
+  auth_method: string;
+  gender: string | null;
+  date_of_birth: string | null;
+  denomination: string | null;
+  address: string | null;
+  join_date: string | null;
+  employment_status: string | null;
+  occupation: string | null;
+  employer: string | null;
+  emergency_contact_name: string | null;
+  emergency_contact_relationship: string | null;
+  emergency_contact_phone: string | null;
+  updated_at: string;
+}
+
 export interface PaginatedResponse<T> {
   count: number;
   next: string | null;
@@ -49,6 +66,7 @@ export interface AdminUserFilters {
   is_active?: boolean;
   role?: UserRole;
   member_part?: MemberPart;
+  ordering?: string;
   page?: number;
 }
 

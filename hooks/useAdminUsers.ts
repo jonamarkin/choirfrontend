@@ -1,6 +1,11 @@
 import useSWR from "swr";
 import { adminUserService } from "@/services/admin-user.service";
-import { AdminUser, AdminUserFilters, PaginatedResponse } from "@/types/admin";
+import {
+  AdminUser,
+  AdminUserDetail,
+  AdminUserFilters,
+  PaginatedResponse,
+} from "@/types/admin";
 
 /**
  * SWR hook for fetching admin users with filters
@@ -32,10 +37,10 @@ export function useAdminUsers(filters?: AdminUserFilters) {
 }
 
 /**
- * SWR hook for fetching a single user by ID
+ * SWR hook for fetching a single user by ID (full detail)
  */
 export function useAdminUser(id: string | null) {
-  const { data, error, isLoading, mutate } = useSWR<AdminUser>(
+  const { data, error, isLoading, mutate } = useSWR<AdminUserDetail>(
     id ? ["admin-user", id] : null,
     () => adminUserService.getUser(id!),
     {
