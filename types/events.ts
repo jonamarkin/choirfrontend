@@ -70,6 +70,7 @@ export interface EventListItem {
   event_type: EventType;
   event_type_display: string;
   location: string;
+  google_maps_link?: string;
   start_datetime: string;
   end_datetime: string;
   is_mandatory: boolean;
@@ -100,6 +101,7 @@ export interface EventFormData {
   description?: string;
   event_type: EventType;
   location: string;
+  google_maps_link?: string;
   start_datetime: string;
   end_datetime: string;
   is_mandatory: boolean;

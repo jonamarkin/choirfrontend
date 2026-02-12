@@ -180,8 +180,8 @@ export function EventsList() {
                     event.status === "scheduled"
                       ? "bg-blue-500/10 text-blue-500"
                       : event.status === "completed"
-                      ? "bg-green-500/10 text-green-500"
-                      : "bg-gray-500/10 text-gray-500"
+                        ? "bg-green-500/10 text-green-500"
+                        : "bg-gray-500/10 text-gray-500"
                   )}
                 >
                   {event.status_display}
@@ -200,7 +200,19 @@ export function EventsList() {
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                   <MapPin className="h-4 w-4" />
-                  <span className="line-clamp-1">{event.location}</span>
+                  {event.google_maps_link ? (
+                    <a
+                      href={event.google_maps_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="line-clamp-1 hover:underline hover:text-primary transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {event.location}
+                    </a>
+                  ) : (
+                    <span className="line-clamp-1">{event.location}</span>
+                  )}
                 </div>
               </div>
 

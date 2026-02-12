@@ -92,9 +92,9 @@ export function CreateEventDialog({
 
       if (isRecurring) {
         await eventsService.createRecurringEvent({
-           base_event: eventPayload,
-           frequency,
-           count: recurrenceCount,
+          base_event: eventPayload,
+          frequency,
+          count: recurrenceCount,
         });
         toast.success(`Successfully created ${recurrenceCount} events`);
       } else {
@@ -178,10 +178,21 @@ export function CreateEventDialog({
                 }
               />
             </div>
+            <div className="space-y-2 col-span-2">
+              <Label htmlFor="google_maps_link">Google Maps Link (Optional)</Label>
+              <Input
+                id="google_maps_link"
+                placeholder="https://maps.google.com/..."
+                value={formData.google_maps_link || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, google_maps_link: e.target.value })
+                }
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-             <div className="space-y-2 flex flex-col">
+            <div className="space-y-2 flex flex-col">
               <Label>Date {isRecurring && "(Start Date)"}</Label>
               <Popover>
                 <PopoverTrigger asChild>
@@ -206,48 +217,48 @@ export function CreateEventDialog({
                 </PopoverContent>
               </Popover>
             </div>
-             <div className="space-y-2 flex flex-col justify-end pb-0.5">
-               <div className="flex items-center space-x-2">
-                 <Checkbox
-                    id="recurring"
-                    checked={isRecurring}
-                    onCheckedChange={(checked) => setIsRecurring(checked as boolean)}
-                 />
-                 <Label htmlFor="recurring" className="font-normal cursor-pointer">
-                   Recurring Event
-                 </Label>
-               </div>
+            <div className="space-y-2 flex flex-col justify-end pb-0.5">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="recurring"
+                  checked={isRecurring}
+                  onCheckedChange={(checked) => setIsRecurring(checked as boolean)}
+                />
+                <Label htmlFor="recurring" className="font-normal cursor-pointer">
+                  Recurring Event
+                </Label>
+              </div>
             </div>
           </div>
 
           {isRecurring && (
             <div className="grid grid-cols-2 gap-4 p-3 bg-muted/30 rounded-md border border-border/50">
-               <div className="space-y-2">
-                  <Label>Frequency</Label>
-                  <Select
-                    value={frequency}
-                    onValueChange={(v) => setFrequency(v as "daily" | "weekly" | "biweekly")}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="daily">Daily</SelectItem>
-                      <SelectItem value="weekly">Weekly</SelectItem>
-                      <SelectItem value="biweekly">Bi-Weekly</SelectItem>
-                    </SelectContent>
-                  </Select>
-               </div>
-               <div className="space-y-2">
-                  <Label>Number of Events</Label>
-                  <Input
-                    type="number"
-                    min={2}
-                    max={52}
-                    value={recurrenceCount}
-                    onChange={(e) => setRecurrenceCount(parseInt(e.target.value) || 2)}
-                  />
-               </div>
+              <div className="space-y-2">
+                <Label>Frequency</Label>
+                <Select
+                  value={frequency}
+                  onValueChange={(v) => setFrequency(v as "daily" | "weekly" | "biweekly")}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="daily">Daily</SelectItem>
+                    <SelectItem value="weekly">Weekly</SelectItem>
+                    <SelectItem value="biweekly">Bi-Weekly</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Number of Events</Label>
+                <Input
+                  type="number"
+                  min={2}
+                  max={52}
+                  value={recurrenceCount}
+                  onChange={(e) => setRecurrenceCount(parseInt(e.target.value) || 2)}
+                />
+              </div>
             </div>
           )}
 
@@ -313,6 +324,6 @@ export function CreateEventDialog({
           </DialogFooter>
         </form>
       </DialogContent>
-    </Dialog>
+    </Dialog >
   );
 }
