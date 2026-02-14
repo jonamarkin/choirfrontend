@@ -69,6 +69,9 @@ export function CreateEventDialog({
   const [frequency, setFrequency] = React.useState<"daily" | "weekly" | "biweekly">("weekly");
   const [recurrenceCount, setRecurrenceCount] = React.useState(10);
 
+  // Timezone State
+  const [timezone, setTimezone] = React.useState<"local" | "accra">("accra");
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!date) {
@@ -80,9 +83,30 @@ export function CreateEventDialog({
 
     try {
       // Combine date and time
-      const dateStr = format(date, "yyyy-MM-dd");
-      const startDateTime = `${dateStr}T${startTime}:00`;
-      const endDateTime = `${dateStr}T${endTime}:00`;
+      // Combine date and time based on timezone
+      let startDateTime: string;
+      let endDateTime: string;
+
+      const year = date.getFullYear();
+      const month = date.getMonth();
+      const day = date.getDate();
+
+      const [startHours, startMinutes] = startTime.split(":").map(Number);
+      const [endHours, endMinutes] = endTime.split(":").map(Number);
+
+      if (timezone === "accra") {
+        // Treat input as GMT/UTC
+        const start = new Date(Date.UTC(year, month, day, startHours, startMinutes));
+        const end = new Date(Date.UTC(year, month, day, endHours, endMinutes));
+        startDateTime = start.toISOString();
+        endDateTime = end.toISOString();
+      } else {
+        // Treat input as Local Time
+        const start = new Date(year, month, day, startHours, startMinutes);
+        const end = new Date(year, month, day, endHours, endMinutes);
+        startDateTime = start.toISOString();
+        endDateTime = end.toISOString();
+      }
 
       const eventPayload = {
         ...formData,
@@ -283,6 +307,26 @@ export function CreateEventDialog({
                 onChange={(e) => setEndTime(e.target.value)}
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Timezone</Label>
+            <Select
+              value={timezone}
+              onValueChange={(v) => setTimezone(v as "local" | "accra")}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="accra">Accra Time (GMT/UTC)</SelectItem>
+                <SelectItem value="local">My Local Time</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Select "Accra Time" if the event is physically in Accra (e.g. 10:00 means 10:00 GMT).
+              Select "Local Time" if you are remote and want to enter your local time.
+            </p>
           </div>
 
           <div className="space-y-2">
