@@ -43,6 +43,7 @@ import {
 import { attendanceService } from "@/services/attendance.service";
 import { useEligibleMembers } from "@/hooks/useAttendance";
 import { getAttendanceStyles, getVoicePartStyles } from "@/utils/premium-styles";
+import { mutate as mutateGlobal } from "swr";
 
 interface AdminAttendanceManagerProps {
   slug: string;
@@ -100,6 +101,9 @@ export function AdminAttendanceManager({
       toast.success(`Successfully marked attendance for ${updates.length} members`);
       setPendingChanges({});
       mutate(); // Reload eligible members list
+      void mutateGlobal("my-attendance-stats");
+      void mutateGlobal("my-attendance");
+      void mutateGlobal(["event-attendance", slug]);
       onUpdate(); // Trigger parent refresh (e.g. event stats)
     } catch (error) {
       console.error(error);

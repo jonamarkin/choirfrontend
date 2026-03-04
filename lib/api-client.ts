@@ -64,7 +64,7 @@ class ApiClient {
         if (refresh) {
           try {
             // Attempt to refresh the token
-            const refreshResponse = await fetch(`${API_BASE_URL}/auth/token/refresh`, {
+            const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh/`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ refresh }),

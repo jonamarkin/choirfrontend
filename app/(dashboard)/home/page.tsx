@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { PremiumStatCard } from "@/components/premium-stat-card";
 import { gradientTextStyles, cardBaseStyle } from "@/utils/premium-styles";
 import { PendingSubscriptionsWidget } from "@/components/subscriptions/pending-subscriptions-widget";
+import { useMyAttendanceStats } from "@/hooks/useAttendance";
 
 interface HomeProps {
   userEmail: string;
@@ -30,6 +31,7 @@ export default function Home({ userEmail, userRole }: HomeProps) {
   const router = useRouter();
   const [isPending, setIsPending] = React.useState(true);
   const [firstName, setFirstName] = React.useState("");
+  const { stats } = useMyAttendanceStats();
 
   React.useEffect(() => {
     // Check if user is pending
@@ -101,7 +103,11 @@ export default function Home({ userEmail, userRole }: HomeProps) {
           <PremiumStatCard value={3} label="Upcoming Events" variant="primary" />
           <PremiumStatCard value={7} label="Songs to Learn" variant="secondary" />
           {!isPending && (
-            <PremiumStatCard value="95%" label="Attendance Rate" variant="pink" />
+            <PremiumStatCard
+              value={`${(stats?.attendance_percentage ?? 0).toFixed(0)}%`}
+              label="Attendance Rate"
+              variant="pink"
+            />
           )}
         </div>
 

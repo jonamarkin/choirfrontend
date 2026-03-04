@@ -43,7 +43,7 @@ export const authService = {
     }
 
     const response = await apiClient.post<{ access: string; refresh: string }>(
-      "/auth/refresh",
+      "/auth/refresh/",
       { refresh },
       { skipAuth: true }
     );

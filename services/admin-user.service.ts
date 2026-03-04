@@ -52,7 +52,7 @@ export const adminUserService = {
    */
   async approveUser(id: string): Promise<{ message: string; user: AdminUser }> {
     return apiClient.post<{ message: string; user: AdminUser }>(
-      `${BASE_PATH}/${id}/approve/`,
+      `${BASE_PATH}/${id}/approve`,
       {}
     );
   },
@@ -64,7 +64,7 @@ export const adminUserService = {
     id: string
   ): Promise<{ message: string; user: AdminUser }> {
     return apiClient.post<{ message: string; user: AdminUser }>(
-      `${BASE_PATH}/${id}/activate/`,
+      `${BASE_PATH}/${id}/activate`,
       {}
     );
   },
@@ -76,7 +76,7 @@ export const adminUserService = {
     id: string
   ): Promise<{ message: string; user: AdminUser }> {
     return apiClient.post<{ message: string; user: AdminUser }>(
-      `${BASE_PATH}/${id}/deactivate/`,
+      `${BASE_PATH}/${id}/deactivate`,
       {}
     );
   },
